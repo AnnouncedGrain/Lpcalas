@@ -6,6 +6,8 @@ export class Hub {
     this.clients = new Map(); // connId -> { res, userId }
     this.nextId = 1;
     this.offlineTimers = new Map(); // userId -> timeout
+    this.onlineSince = new Map(); // userId -> ms
+    this.activity = []; // zadnjih 100: { userId, type: 'join' | 'leave', at }
     // Glasovni kanali: channelId -> Map(userId -> { joinedAt })
     this.voice = new Map();
     // Status koji klijent sam prijavi: userId -> { muted, deafened, streaming }
@@ -38,7 +40,10 @@ export class Hub {
       clearTimeout(pending);
       this.offlineTimers.delete(userId);
     } else if (!wasOnline) {
-      this.broadcast('presence', { userId, online: true });
+      const at = Date.now();
+      this.onlineSince.set(userId, at);
+      this.logActivity(userId, 'join', at);
+      this.broadcast('presence', { userId, online: true, since: at, at });
     }
     const cleanup = () => {
       if (!this.clients.delete(connId)) return;
@@ -46,7 +51,12 @@ export class Hub {
         // Mala pauza da reconnect ne izazove treptanje statusa.
         const t = setTimeout(() => {
           this.offlineTimers.delete(userId);
-          if (!this.isOnline(userId)) this.broadcast('presence', { userId, online: false });
+          if (!this.isOnline(userId)) {
+            const at = Date.now();
+            this.onlineSince.delete(userId);
+            this.logActivity(userId, 'leave', at);
+            this.broadcast('presence', { userId, online: false, at });
+          }
         }, 4000);
         t.unref();
         this.offlineTimers.set(userId, t);
@@ -60,6 +70,15 @@ export class Hub {
   isOnline(userId) {
     for (const c of this.clients.values()) if (c.userId === userId) return true;
     return this.offlineTimers.has(userId);
+  }
+
+  logActivity(userId, type, at) {
+    this.activity.push({ userId, type, at });
+    if (this.activity.length > 100) this.activity.splice(0, this.activity.length - 100);
+  }
+
+  presenceSnapshot() {
+    return { onlineSince: Object.fromEntries(this.onlineSince), activity: this.activity.slice(-50) };
   }
 
   onlineUserIds() {

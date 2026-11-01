@@ -2,6 +2,7 @@ import { useEffect, useState, type MouseEvent } from 'react';
 import { useApp, useClient, useSettings, useVoice } from '../lib/context';
 import { settings } from '../lib/settings';
 import type { Channel, VoiceMember } from '../lib/types';
+import { formatDuration } from '../lib/format';
 import { Avatar } from './Avatar';
 import { Icon } from './Icon';
 
@@ -133,6 +134,7 @@ function VoiceMemberRow({ member, menuOpen: menu, onMenu }: { member: VoiceMembe
   const speaking = useVoice((v) => v.speaking.includes(member.userId) && v.channelId !== null);
   const s = useSettings();
   const isMe = me.id === member.userId;
+  const since = useApp((s) => s.onlineSince[member.userId]);
   const volume = s.userVolumes[String(member.userId)] ?? 1;
 
   return (
@@ -143,7 +145,7 @@ function VoiceMemberRow({ member, menuOpen: menu, onMenu }: { member: VoiceMembe
           e.preventDefault();
           onMenu(isMe ? false : !menu);
         }}
-        title={isMe ? undefined : 'Desni klik: jačina zvuka'}
+        title={`${since ? `Online ${formatDuration(Date.now() - since)}` : ''}${isMe ? '' : '\nDesni klik: jačina, poke'}`}
       >
         <Avatar user={user} size={22} baseUrl={client.api.baseUrl} speaking={speaking} />
         <span className="voice-member-name">{user?.displayName || '...'}</span>

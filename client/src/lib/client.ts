@@ -6,6 +6,12 @@ import { settings, saveSession, type SavedSession } from './settings';
 import { setHotkeys, flashWindow } from './native';
 import { sounds } from './sounds';
 
+export interface ActivityEntry {
+  userId: number;
+  type: 'join' | 'leave';
+  at: number;
+}
+
 export interface ChannelMessages {
   items: Message[];
   hasMore: boolean;
@@ -30,6 +36,8 @@ export interface AppState {
   view: 'text' | 'voice';
   pokeTarget: number | null; // kome pišem poke
   pokes: Array<{ id: number; from: number; message: string; at: number }>; // primljeni
+  onlineSince: Record<number, number>; // userId -> od kada je online (ms)
+  activity: ActivityEntry[]; // ko je ušao/izašao (najnovije zadnje)
 }
 
 // Jedna instanca po prijavi: API, realtime događaji, glas i stanje aplikacije.
@@ -54,6 +62,8 @@ export class Client {
       view: 'text',
       pokeTarget: null,
       pokes: [],
+      onlineSince: {},
+      activity: [],
     });
     this.voice = new VoiceManager(api);
     this.connectEvents();
@@ -109,7 +119,16 @@ export class Client {
     es.addEventListener('hello', (e) => {
       const data = JSON.parse((e as MessageEvent).data);
       const wasReconnecting = this.store.get().connection === 'reconnecting';
-      this.store.set({ connection: 'online', online: data.online, voice: data.voice });
+      // Stariji server ne šalje onlineSince/activity — tada računamo od trenutka spajanja.
+      const since: Record<number, number> = { ...(data.onlineSince || {}) };
+      for (const id of data.online as number[]) since[id] ??= this.store.get().onlineSince[id] ?? Date.now();
+      this.store.set({
+        connection: 'online',
+        online: data.online,
+        voice: data.voice,
+        onlineSince: since,
+        activity: Array.isArray(data.activity) ? data.activity : this.store.get().activity,
+      });
       if (wasReconnecting) void this.resync();
       opened = true;
     });
@@ -134,10 +153,18 @@ export class Client {
         return { messages: { ...s.messages, [channelId]: { ...ch, items: ch.items.filter((x) => x.id !== id) } } };
       });
     });
-    on('presence', ({ userId, online }: { userId: number; online: boolean }) => {
-      this.store.set((s) => ({
-        online: online ? [...new Set([...s.online, userId])] : s.online.filter((x) => x !== userId),
-      }));
+    on('presence', ({ userId, online, since, at }: { userId: number; online: boolean; since?: number; at?: number }) => {
+      const when = at ?? Date.now();
+      this.store.set((s) => {
+        const onlineSince = { ...s.onlineSince };
+        if (online) onlineSince[userId] = since ?? when;
+        else delete onlineSince[userId];
+        return {
+          online: online ? [...new Set([...s.online, userId])] : s.online.filter((x) => x !== userId),
+          onlineSince,
+          activity: [...s.activity, { userId, type: online ? 'join' : 'leave', at: when } as ActivityEntry].slice(-100),
+        };
+      });
     });
     on('voice', (voice: VoiceMap) => this.store.set({ voice }));
     on('voice.kicked', () => {

@@ -138,3 +138,15 @@ export function isOnlyEmoji(text: string): boolean {
   if (!t || t.length > 24) return false;
   return /^(\p{Extended_Pictographic}|\p{Emoji_Component}|\s|‍|️)+$/u.test(t) && !/^[\d#*\s]+$/.test(t);
 }
+
+// "2 h 15 min", "5 min", "manje od minute"
+export function formatDuration(ms: number): string {
+  const min = Math.floor(ms / 60000);
+  if (min < 1) return 'manje od minute';
+  const d = Math.floor(min / 1440);
+  const h = Math.floor((min % 1440) / 60);
+  const m = min % 60;
+  if (d > 0) return `${d} d ${h} h`;
+  if (h > 0) return `${h} h ${m} min`;
+  return `${m} min`;
+}

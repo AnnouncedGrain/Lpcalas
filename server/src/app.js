@@ -633,7 +633,7 @@ export function createApp(config, { log = console } = {}) {
         const auth = authenticate(req, url);
         if (!auth) throw unauthorized();
         hub.connect(req, res, auth.user.id);
-        hub.send(res, 'hello', { online: hub.onlineUserIds(), voice: hub.voiceSnapshot() });
+        hub.send(res, 'hello', { online: hub.onlineUserIds(), voice: hub.voiceSnapshot(), ...hub.presenceSnapshot() });
         return;
       }
       let m = /^\/f\/([A-Za-z0-9_-]+)(?:\/.*)?$/.exec(url.pathname);

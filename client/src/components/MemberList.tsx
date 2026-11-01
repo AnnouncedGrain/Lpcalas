@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useApp, useClient } from '../lib/context';
+import { formatDuration, formatTime } from '../lib/format';
 import { Avatar } from './Avatar';
 import { Icon } from './Icon';
 
@@ -11,6 +12,15 @@ export function MemberList() {
   const channels = useApp((s) => s.channels);
   const meId = useApp((s) => s.me.id);
   const [menu, setMenu] = useState<number | null>(null);
+  const onlineSince = useApp((s) => s.onlineSince);
+  const activity = useApp((s) => s.activity);
+  const [, setTick] = useState(0);
+
+  // Osvježi "online X min" svakih 30 s.
+  useEffect(() => {
+    const t = setInterval(() => setTick((x) => x + 1), 30_000);
+    return () => clearInterval(t);
+  }, []);
 
   useEffect(() => {
     if (menu === null) return;
@@ -37,7 +47,11 @@ export function MemberList() {
         e.preventDefault();
         setMenu(u.id === meId || !isOnline ? null : u.id);
       }}
-      title={u.id === meId || !isOnline ? undefined : 'Desni klik: Poke'}
+      title={
+        isOnline
+          ? `Online ${onlineSince[u.id] ? formatDuration(Date.now() - onlineSince[u.id]) : ''}${u.id === meId ? '' : '\nDesni klik: Poke'}`
+          : undefined
+      }
     >
       <Avatar user={u} size={32} baseUrl={client.api.baseUrl} online={isOnline} />
       <div className="member-text">
@@ -59,10 +73,27 @@ export function MemberList() {
 
   return (
     <aside className="member-list">
-      <div className="section-title"><span>Online — {on.length}</span></div>
-      {on.map((u) => row(u, true))}
-      {off.length > 0 && <div className="section-title"><span>Offline — {off.length}</span></div>}
-      {off.map((u) => row(u, false))}
+      <div className="member-scroll">
+        <div className="section-title"><span>Online — {on.length}</span></div>
+        {on.map((u) => row(u, true))}
+        {off.length > 0 && <div className="section-title"><span>Offline — {off.length}</span></div>}
+        {off.map((u) => row(u, false))}
+      </div>
+      <div className="activity-log">
+        <div className="section-title"><span>Aktivnost</span></div>
+        <div className="activity-scroll">
+          {activity.length === 0 && <div className="muted small activity-empty">Još nema aktivnosti.</div>}
+          {[...activity].reverse().slice(0, 50).map((a, i) => (
+            <div key={`${a.at}-${a.userId}-${i}`} className={`activity-row ${a.type}`}>
+              <span className="activity-time">{formatTime(a.at)}</span>
+              <span className="activity-dot" />
+              <span className="activity-text">
+                <b>{users[a.userId]?.displayName || '?'}</b> {a.type === 'join' ? 'ušao' : 'izašao'}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
     </aside>
   );
 }

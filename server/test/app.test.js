@@ -359,6 +359,8 @@ test('SSE: događaji stižu u realnom vremenu', async () => {
   };
   const hello = await waitFor('hello');
   assert.ok(hello.online.includes(state.admin.user.id));
+  assert.ok(hello.onlineSince[state.admin.user.id] > Date.now() - 10000);
+  assert.ok(hello.activity.some((a) => a.userId === state.admin.user.id && a.type === 'join'));
   await api('POST', `/api/channels/${state.text.id}/messages`, { token: state.member.token, body: { content: 'live!' } });
   const msg = await waitFor('message');
   assert.equal(msg.content, 'live!');
