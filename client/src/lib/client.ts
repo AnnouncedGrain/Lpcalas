@@ -6,6 +6,7 @@ import { settings, saveSession, type SavedSession } from './settings';
 import { setHotkeys, flashWindow } from './native';
 import { sounds } from './sounds';
 import { CHANGELOG } from '../changelog';
+import { startMemoryMonitor } from './memory';
 import { t } from './i18n';
 
 export interface ActivityEntry {
@@ -71,6 +72,7 @@ export class Client {
     });
     this.voice = new VoiceManager(api);
     this.voice.setUploadBudget(this.store.get().uploadMbps);
+    startMemoryMonitor(() => this.voice.store.get().streams.length);
     this.unsubBudget = this.store.subscribe(() => this.voice.setUploadBudget(this.store.get().uploadMbps));
     this.connectEvents();
     this.typingSweep = setInterval(() => this.sweepTyping(), 2000);

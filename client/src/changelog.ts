@@ -72,4 +72,9 @@ export const CHANGELOG: Array<{ version: string; notes: string }> = [
     notes: `- Više streamova odjednom više ne štuca: streamovi se automatski smanje da svi stanu u upload servera (Postavke → Admin → Internet servera)
 - Server prelazi na Node 26 (LTS) i pri ažuriranju povlači najnovije sigurnosne zakrpe`,
   },
+  {
+    version: '0.2.7',
+    notes: `- Manje trošenja memorije dok gledaš streamove (video se više ne spaja ponovo na svaku promjenu u kanalu)
+- Postavke → Aplikacija → Memorija: koliko RAM-a troši aplikacija + izvještaj za dijagnostiku`,
+  },
 ];

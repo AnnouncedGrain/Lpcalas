@@ -27,6 +27,7 @@ export interface StreamInfo {
   userId: number;
   identity: string;
   local: boolean;
+  sid?: string; // id video tracka streama (mijenja se kad streamer ponovo pokrene stream)
 }
 
 export interface VoiceState {
@@ -670,15 +671,19 @@ export class VoiceManager {
     if (!room) return;
     const streams: StreamInfo[] = [];
     const lp = room.localParticipant;
-    if (lp.getTrackPublication(Track.Source.ScreenShare)?.track) {
-      streams.push({ userId: Number(lp.identity), identity: lp.identity, local: true });
+    const lpub = lp.getTrackPublication(Track.Source.ScreenShare);
+    if (lpub?.track) {
+      streams.push({ userId: Number(lp.identity), identity: lp.identity, local: true, sid: lpub.trackSid });
     }
     for (const p of room.remoteParticipants.values()) {
-      if (p.getTrackPublication(Track.Source.ScreenShare)) {
-        streams.push({ userId: Number(p.identity), identity: p.identity, local: false });
+      const pub = p.getTrackPublication(Track.Source.ScreenShare);
+      if (pub) {
+        streams.push({ userId: Number(p.identity), identity: p.identity, local: false, sid: pub.trackSid });
       }
     }
-    this.store.set({ streams });
+    const prev = this.store.get().streams;
+    const same = prev.length === streams.length && prev.every((x, i) => x.identity === streams[i].identity && x.local === streams[i].local && x.sid === streams[i].sid);
+    if (!same) this.store.set({ streams });
     this.applyStreamBitrate();
   }
 

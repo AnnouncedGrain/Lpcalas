@@ -1,4 +1,5 @@
 mod hotkeys;
+mod memory;
 mod sharebar;
 mod sysaudio;
 
@@ -118,6 +119,7 @@ pub fn run() {
             set_hotkeys,
             popout_control,
             sharebar::hide_share_bar,
+            memory::memory_usage,
             hotkeys::capture_key,
             sysaudio::start_system_audio,
             sysaudio::stop_system_audio

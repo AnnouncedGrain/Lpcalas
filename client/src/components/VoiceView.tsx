@@ -188,7 +188,9 @@ export function VoiceView() {
 // Prikaz streama u <video> (u aplikaciji ili u pop-out prozoru) + jačina zvuka streama.
 export function useStreamMedia(info: StreamInfo, active: boolean, videoRef: RefObject<HTMLVideoElement>, streamVolume: number, streamMuted: boolean) {
   const client = useClient();
-  const streams = useVoice((v) => v.streams);
+  // Ponovo spoji video samo kad se promijeni ko streama (ne na svaku sitnu promjenu u kanalu):
+  // stalno odspajanje/spajanje <video> elementa ostavlja memoriju dekodera u WebView2.
+  const streamsKey = useVoice((v) => v.streams.map((s) => `${s.identity}:${s.sid ?? ''}`).join(','));
   const [tick, setTick] = useState(0);
 
   // Spoji video (i zvuk streama) dok gledaš. Track stiže tek nakon pretplate, pa slušamo i događaje.
@@ -214,13 +216,13 @@ export function useStreamMedia(info: StreamInfo, active: boolean, videoRef: RefO
         audioEl.remove();
       }
     };
-  }, [client, info.identity, info.local, active, streams, tick, videoRef]);
+  }, [client, info.identity, info.local, active, streamsKey, tick, videoRef]);
 
   useEffect(() => {
     const room = client.voice.getRoom();
     const p = room?.remoteParticipants.get(info.identity);
     if (p && !info.local && active) p.setVolume(streamMuted ? 0 : streamVolume * settings.get().outputVolume, Track.Source.ScreenShareAudio);
-  }, [client, info.identity, info.local, streamVolume, streamMuted, streams, active]);
+  }, [client, info.identity, info.local, streamVolume, streamMuted, streamsKey, active]);
 }
 
 function StreamTile({

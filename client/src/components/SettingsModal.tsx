@@ -8,6 +8,7 @@ import { checkEncoders, gpuName, type CodecSupport } from '../lib/hw';
 import { sounds } from '../lib/sounds';
 import { checkForUpdate, currentVersion, installUpdate, updateStore } from '../lib/updater';
 import { useStore } from '../lib/store';
+import { jsHeapMb, memoryHistory, readProcesses, type ProcMem } from '../lib/memory';
 import { Icon } from './Icon';
 import { LANGUAGES, locale, t } from '../lib/i18n';
 
@@ -486,6 +487,7 @@ function AppTab() {
           <button className="small" onClick={() => sounds.streamStop()}>{t('Stream gotov')}</button>
         </div>
       </Section>
+      {isTauri && <MemorySection />}
       <Section title={t('O aplikaciji')}>
         <p>Lpcalas v{currentVersion()} · {isTauri ? t('Windows aplikacija') : t('web verzija')}</p>
         <UpdateCheck />
@@ -496,6 +498,48 @@ function AppTab() {
 }
 
 // ---------------- Admin ----------------
+
+function MemorySection() {
+  const [procs, setProcs] = useState<ProcMem[]>([]);
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    const load = () => void readProcesses().then((p) => alive && setProcs(p));
+    load();
+    const id = setInterval(load, 3000);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, []);
+  const total = Math.round(procs.reduce((a, p) => a + p.private_mb, 0));
+  const js = jsHeapMb();
+  const copy = () => {
+    const fmt = (ms: number) => new Date(ms).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' });
+    const lines = [
+      `Lpcalas v${__APP_VERSION__} · ${gpuName()}`,
+      `Sada: ukupno ${total} MB · JS ${js ?? '?'} MB`,
+      ...procs.map((p) => `  ${p.name} (${p.pid}): ${Math.round(p.private_mb)} MB`),
+      'Historija (svake minute): vrijeme · ukupno · JS · najveći proces · streamova',
+      ...memoryHistory().map((h) => `  ${fmt(h.at)} · ${h.totalMb} · ${h.jsMb ?? '?'} · ${h.biggestMb} · ${h.streams}`),
+    ];
+    void navigator.clipboard.writeText(lines.join('\n')).then(() => setCopied(true));
+  };
+  return (
+    <Section title={t('Memorija')} hint={t('Koliko RAM-a troši Lpcalas (svi njegovi procesi). Ako raste, klikni "Kopiraj izvještaj" i pošalji Claudeu.')}>
+      <p>
+        <b>{t('Ukupno: {v} MB', { v: total })}</b>
+        {js !== null && <span className="muted"> · JavaScript {js} MB</span>}
+      </p>
+      <div className="muted small" style={{ fontFamily: 'ui-monospace, Consolas, monospace' }}>
+        {procs.slice(0, 6).map((p) => (
+          <div key={p.pid}>{p.name} ({p.pid}): {Math.round(p.private_mb)} MB</div>
+        ))}
+      </div>
+      <button onClick={copy}>{copied ? t('Kopirano ✓') : t('Kopiraj izvještaj')}</button>
+    </Section>
+  );
+}
 
 function ServerUploadSection() {
   const client = useClient();

@@ -1,6 +1,6 @@
 [package]
 name = "lpcalas"
-version = "0.2.6"
+version = "0.2.7"
 description = "Lpcalas - glas, stream i chat"
 edition = "2021"
 
@@ -22,7 +22,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.59", features = ["Win32_UI_Input_KeyboardAndMouse", "Win32_UI_WindowsAndMessaging", "Win32_Foundation", "Win32_System_Diagnostics_ToolHelp"] }
+windows-sys = { version = "0.59", features = ["Win32_UI_Input_KeyboardAndMouse", "Win32_UI_WindowsAndMessaging", "Win32_Foundation", "Win32_System_Diagnostics_ToolHelp", "Win32_System_ProcessStatus", "Win32_System_Threading"] }
 # Snimanje zvuka računara bez zvuka same aplikacije (process loopback).
 wasapi = { git = "https://github.com/HEnquist/wasapi-rs", rev = "4d58f98729195bdfb458e58368ca2a46eb787a23" }
 
