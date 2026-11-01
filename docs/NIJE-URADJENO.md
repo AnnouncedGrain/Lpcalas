@@ -10,6 +10,10 @@ Ovo su stvari koje smo namjerno ostavili za kasnije. Claude te podsjeti kad dođ
 - [ ] Linux instalacijska skripta + HTTPS (Caddy) — Claude piše kad server postoji
 - [ ] Prebacivanje podataka (`deploy/data`) s privremenog računara na server
 
+## Nakon što osnovni dio proradi
+
+- [ ] **Vlastiti izgled aplikacije** — da ne liči na Discord, nego da ima karakter specifičan za Lpcalas (raspored, boje, tipografija, chat)
+
 ## Opcionalno
 
 - [ ] Code signing certifikat za Windows (bez njega SmartScreen pokazuje upozorenje — dogovoreno da je OK)
