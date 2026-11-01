@@ -112,6 +112,7 @@ export class Api {
   invites() { return this.get<Invite[]>('/api/invites'); }
   createInvite(uses: number, expiresHours: number | null) { return this.post<Invite>('/api/invites', { uses, expiresHours }); }
   deleteInvite(code: string) { return this.del(`/api/invites/${encodeURIComponent(code)}`); }
+  updateServerSettings(data: { uploadMbps?: number }) { return this.patch<{ uploadMbps?: number }>('/api/server-settings', data); }
   updateUser(id: number, data: { role?: 'admin' | 'member'; disabled?: boolean }) { return this.patch<User>(`/api/users/${id}`, data); }
 
   // Upload sa praćenjem napretka (fetch nema progress za upload, zato XHR).

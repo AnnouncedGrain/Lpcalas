@@ -67,4 +67,9 @@ export const CHANGELOG: Array<{ version: string; notes: string }> = [
     notes: `- Uklonjena Windows traka "dijeli ekran / sakrij" na dnu ekrana dok streamaš (stream se gasi iz aplikacije)
 - Statistika streama kod streamera pokazuje i koji mikrofon se koristi (dijagnostika eha)`,
   },
+  {
+    version: '0.2.6',
+    notes: `- Više streamova odjednom više ne štuca: streamovi se automatski smanje da svi stanu u upload servera (Postavke → Admin → Internet servera)
+- Server prelazi na Node 26 (LTS) i pri ažuriranju povlači najnovije sigurnosne zakrpe`,
+  },
 ];

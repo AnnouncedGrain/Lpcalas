@@ -104,8 +104,12 @@ if ($isAdmin) {
 # --- 5. Pokretanje ---
 Write-Step "Pokrecem server (prvi put moze potrajati par minuta)"
 $ErrorActionPreference = 'Continue'
-docker compose up -d --build
-$composeExit = $LASTEXITCODE
+# Povuci najnovije (sigurnosno zakrpljene) slike: LiveKit i Node osnovu backenda.
+docker compose pull livekit
+docker compose build --pull
+$buildExit = $LASTEXITCODE
+docker compose up -d
+$composeExit = [Math]::Max($LASTEXITCODE, $buildExit)
 $ErrorActionPreference = 'Stop'
 if ($composeExit -ne 0) { Stop-WithError "docker compose nije uspio. Posalji Claudeu ispis iznad." }
 

@@ -349,6 +349,7 @@ export function StreamStats({ info }: { info: StreamInfo }) {
   const client = useClient();
   const audioMode = useVoice((v) => v.streamAudioMode);
   const audioError = useVoice((v) => v.streamAudioError);
+  const bitrateCap = useVoice((v) => v.bitrateCap);
   const [stats, setStats] = useState<StatsView | null>(null);
 
   useEffect(() => {
@@ -420,6 +421,7 @@ export function StreamStats({ info }: { info: StreamInfo }) {
           : t('Zvuk: isključen')
       : null,
     stats.mic ? t('Mikrofon: {v}', { v: stats.mic }) : null,
+    info.local && bitrateCap ? t('Smanjeno na {v} Mbps da stane u upload servera ({n} gledanja ukupno)', { v: bitrateCap.mbps, n: bitrateCap.views }) : null,
   ].filter(Boolean);
   return (
     <div className="stream-stats">

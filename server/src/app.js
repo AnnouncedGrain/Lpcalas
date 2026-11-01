@@ -13,7 +13,7 @@ import { LiveKit, roomName, channelIdFromRoom } from './livekit.js';
 import { receiveUpload, serveFile, filePath, guessMime, safeFilename } from './files.js';
 import { isRtcPath, proxyHttp, proxyUpgrade } from './proxy.js';
 
-export const VERSION = '0.2.2';
+export const VERSION = '0.2.6';
 const BOT_USERNAME = 'lpcalas.bot';
 const USERNAME_RE = /^[a-zA-Z0-9_.-]{3,24}$/;
 const MAX_MESSAGE = 4000;
@@ -262,7 +262,7 @@ export function createApp(config, { log = console } = {}) {
 
   r.get('/api/bootstrap', (ctx) => ({
     me: publicUser(ctx.user),
-    server: { name: config.serverName, version: VERSION, maxUploadBytes: config.maxUploadBytes, voiceEnabled: livekit.configured },
+    server: { name: config.serverName, version: VERSION, maxUploadBytes: config.maxUploadBytes, voiceEnabled: livekit.configured, uploadMbps: Number(getSetting(db, 'upload_mbps')) || 0 },
     users: db.prepare('SELECT * FROM users ORDER BY display_name COLLATE NOCASE').all().map(publicUser),
     channels: db.prepare('SELECT * FROM channels ORDER BY type DESC, position, id').all().map(publicChannel),
     online: hub.onlineUserIds(),
@@ -634,6 +634,21 @@ export function createApp(config, { log = console } = {}) {
     requireAdmin(ctx);
     db.prepare('DELETE FROM invites WHERE code = ?').run(String(ctx.params.code).toUpperCase());
     return { ok: true };
+  });
+
+  // Postavke servera (admin). uploadMbps = upload internet veze servera; streamovi se dijele unutar toga.
+  r.patch('/api/server-settings', async (ctx) => {
+    requireAdmin(ctx);
+    const body = await readJson(ctx.req);
+    const out = {};
+    if (body.uploadMbps !== undefined) {
+      const v = Number(body.uploadMbps);
+      if (!Number.isFinite(v) || v < 0 || v > 100000) throw bad('Neispravan uploadMbps.', 'validation');
+      setSetting(db, 'upload_mbps', Math.round(v));
+      out.uploadMbps = Math.round(v);
+    }
+    hub.broadcast('server.settings', out);
+    return out;
   });
 
   r.patch('/api/users/:id', async (ctx) => {

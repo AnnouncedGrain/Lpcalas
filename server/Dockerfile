@@ -1,4 +1,6 @@
-FROM node:22-alpine
+# Node 26 = trenutni LTS (podrška do aprila 2029). apk upgrade povuče sigurnosne zakrpe za Alpine.
+FROM node:26-alpine
+RUN apk upgrade --no-cache
 
 WORKDIR /app
 ENV NODE_ENV=production \

@@ -492,3 +492,17 @@ test('premještanje: admin može pomjeriti drugog, član samo sebe', async () =>
   const notInVoice = await api('POST', '/api/voice/move', { token: state.admin.token, body: { userId: state.admin.user.id, channelId: voice[2].id } });
   assert.equal(notInVoice.status, 400);
 });
+
+test('postavke servera: upload brzina (samo admin)', async () => {
+  const boot0 = await api('GET', '/api/bootstrap', { token: state.admin.token });
+  assert.equal(boot0.json.server.uploadMbps, 0);
+  const r = await api('PATCH', '/api/server-settings', { token: state.admin.token, body: { uploadMbps: 30 } });
+  assert.equal(r.status, 200);
+  assert.equal(r.json.uploadMbps, 30);
+  const boot = await api('GET', '/api/bootstrap', { token: state.admin.token });
+  assert.equal(boot.json.server.uploadMbps, 30);
+  const bad = await api('PATCH', '/api/server-settings', { token: state.admin.token, body: { uploadMbps: -5 } });
+  assert.equal(bad.status, 400);
+  const member = await api('PATCH', '/api/server-settings', { token: state.member.token, body: { uploadMbps: 1 } });
+  assert.ok(member.status === 401 || member.status === 403);
+});

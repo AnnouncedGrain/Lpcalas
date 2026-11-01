@@ -497,6 +497,37 @@ function AppTab() {
 
 // ---------------- Admin ----------------
 
+function ServerUploadSection() {
+  const client = useClient();
+  const current = useApp((s) => s.uploadMbps);
+  const [value, setValue] = useState(String(current));
+  const [msg, setMsg] = useState<string | null>(null);
+  useEffect(() => setValue(String(current)), [current]);
+  async function save() {
+    try {
+      await client.api.updateServerSettings({ uploadMbps: Number(value) || 0 });
+      setMsg(t('Sačuvano.'));
+    } catch (e: any) {
+      setMsg(e.message);
+    }
+  }
+  return (
+    <Section
+      title={t('Internet servera')}
+      hint={t('Server šalje svaki stream posebno svakom gledaocu, pa više streamova brzo potroši upload servera. Upiši upload brzinu servera (speedtest) i streamovi će se automatski smanjiti da svi stanu bez štucanja. 0 = bez ograničenja (npr. na Hetzneru).')}
+    >
+      <div className="row">
+        <label className="inline">
+          {t('Upload servera (Mbps)')}
+          <input type="number" min={0} max={100000} value={value} onChange={(e) => setValue(e.target.value)} />
+        </label>
+        <button className="primary" onClick={() => void save()}>{t('Sačuvaj')}</button>
+      </div>
+      {msg && <p className="hint ok">{msg}</p>}
+    </Section>
+  );
+}
+
 function AdminTab() {
   const client = useClient();
   const users = useApp((s) => s.users);
@@ -529,6 +560,7 @@ function AdminTab() {
     <>
       <h2>{t('Admin')}</h2>
       {error && <p className="error">{error}</p>}
+      <ServerUploadSection />
       <Section title={t('Pozivnice')} hint={t('Ko ima pozivni kod, može napraviti nalog. Pošalji kod u Viber grupu.')}>
         <div className="row">
           <label className="inline">{t('Broj korištenja')}<input type="number" min={1} max={100} value={uses} onChange={(e) => setUses(Number(e.target.value))} />

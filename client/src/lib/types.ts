@@ -56,7 +56,7 @@ export type VoiceMap = Record<string, VoiceMember[]>;
 
 export interface Bootstrap {
   me: User;
-  server: { name: string; version: string; maxUploadBytes: number; voiceEnabled: boolean };
+  server: { name: string; version: string; maxUploadBytes: number; voiceEnabled: boolean; uploadMbps?: number };
   users: User[];
   channels: Channel[];
   online: number[];

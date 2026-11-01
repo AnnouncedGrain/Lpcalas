@@ -27,6 +27,7 @@ export interface AppState {
   serverName: string;
   maxUploadBytes: number;
   voiceEnabled: boolean;
+  uploadMbps: number; // upload internet veze servera (0 = bez ograničenja)
   users: Record<number, User>;
   channels: Channel[];
   online: number[];
@@ -51,6 +52,7 @@ export class Client {
   private lastTypingSent = 0;
   private typingSweep: ReturnType<typeof setInterval>;
   private unsubSettings: () => void;
+  private unsubBudget: () => void;
 
   constructor(readonly api: Api, boot: Bootstrap, private onLoggedOut: () => void) {
     const textChannels = boot.channels.filter((c) => c.type === 'text');
@@ -68,6 +70,8 @@ export class Client {
       activity: [],
     });
     this.voice = new VoiceManager(api);
+    this.voice.setUploadBudget(this.store.get().uploadMbps);
+    this.unsubBudget = this.store.subscribe(() => this.voice.setUploadBudget(this.store.get().uploadMbps));
     this.connectEvents();
     this.typingSweep = setInterval(() => this.sweepTyping(), 2000);
     this.applyHotkeys();
@@ -90,6 +94,7 @@ export class Client {
       serverName: boot.server.name,
       maxUploadBytes: boot.server.maxUploadBytes,
       voiceEnabled: boot.server.voiceEnabled,
+      uploadMbps: boot.server.uploadMbps ?? 0,
       users: Object.fromEntries(boot.users.map((u) => [u.id, u])),
       channels: boot.channels,
       online: boot.online,
@@ -102,6 +107,7 @@ export class Client {
     this.events?.close();
     clearInterval(this.typingSweep);
     this.unsubSettings();
+    this.unsubBudget();
     await this.voice.leave(false);
   }
 
@@ -171,6 +177,9 @@ export class Client {
       });
     });
     on('voice', (voice: VoiceMap) => this.store.set({ voice }));
+    on('server.settings', (s: { uploadMbps?: number }) => {
+      if (s.uploadMbps !== undefined) this.store.set({ uploadMbps: s.uploadMbps });
+    });
     on('voice.move', ({ channelId }: { channelId: number }) => {
       void this.voice.join(channelId);
     });

@@ -47,6 +47,8 @@ export interface VoiceState {
   streamAudioMode: 'native' | 'browser' | 'none';
   streamAudioError: string | null;
   viewers: Record<string, number[]>; // identity streamera -> userId gledalaca
+  // Moj stream je smanjen da svi streamovi stanu u upload servera (null = puni kvalitet).
+  bitrateCap: { mbps: number; views: number } | null;
 }
 
 const INITIAL: VoiceState = {
@@ -66,6 +68,7 @@ const INITIAL: VoiceState = {
   viewers: {},
   streamAudioMode: 'none',
   streamAudioError: null,
+  bitrateCap: null,
 };
 
 // AudioWorklet radi na audio niti, pa ga Windows/Chromium ne usporava kad je igra u prvom planu.
@@ -334,6 +337,7 @@ export class VoiceManager {
     await room.localParticipant.setScreenShareEnabled(false).catch(() => {});
     await this.stopSystemAudio();
     this.store.set({ streaming: false });
+    this.applyStreamBitrate();
     sounds.streamStop();
     this.refreshStreams();
     void this.reportState();
@@ -350,6 +354,53 @@ export class VoiceManager {
 
   clearError() {
     this.store.set({ error: null });
+  }
+
+  // ---- Dijeljenje upload-a servera između streamova ----
+  // Server (SFU) šalje svaki stream posebno svakom gledaocu, pa je ukupni izlaz servera
+  // zbir (bitrate streama × broj gledalaca). Kad to pređe upload servera, svi streamovi štucaju.
+  // Zato svaki streamer smanji svoj bitrate na pošten dio: budžet / ukupan broj gledanja.
+  // Svi računaju iz istih podataka (ko gleda koga), pa dobiju isti rezultat.
+  private uploadMbps = 0;
+  private lastAppliedBitrate = 0;
+
+  setUploadBudget(mbps: number) {
+    if (mbps === this.uploadMbps) return;
+    this.uploadMbps = mbps;
+    this.applyStreamBitrate();
+  }
+
+  private applyStreamBitrate() {
+    const room = this.room;
+    const st = this.store.get();
+    if (!room || !st.streaming) {
+      this.lastAppliedBitrate = 0;
+      if (st.bitrateCap) this.store.set({ bitrateCap: null });
+      return;
+    }
+    const s = settings.get();
+    const full = s.streamBitrateOverride ?? presetById(s.streamPreset).bitrate;
+    // Ukupno gledanja preko interneta: svaki gledalac svakog streama (streamer svoj ne skida).
+    let views = 0;
+    for (const stream of st.streams) {
+      views += (st.viewers[stream.identity] || []).filter((uid) => String(uid) !== stream.identity).length;
+    }
+    let target = full;
+    if (this.uploadMbps > 0 && views > 0) {
+      const share = (this.uploadMbps * 1_000_000 * 0.85) / views; // 15% rezerva za glas i ostalo
+      target = Math.min(full, Math.max(1_500_000, Math.round(share)));
+    }
+    this.store.set({ bitrateCap: target < full ? { mbps: Math.round(target / 100_000) / 10, views } : null });
+    if (Math.abs(target - this.lastAppliedBitrate) < this.lastAppliedBitrate * 0.08) return;
+    const sender = room.localParticipant.getTrackPublication(Track.Source.ScreenShare)?.track?.sender;
+    if (!sender) return;
+    const params = sender.getParameters();
+    if (!params.encodings?.length) return;
+    for (const e of params.encodings) e.maxBitrate = target;
+    this.lastAppliedBitrate = target;
+    void sender.setParameters(params).catch(() => {
+      this.lastAppliedBitrate = 0;
+    });
   }
 
   // Stream u zasebnom prozoru (pop-out). Veza i pretplata ostaju iste, mijenja se samo gdje se prikazuje.
@@ -409,6 +460,7 @@ export class VoiceManager {
     const after = viewers[me]?.length || 0;
     if (this.store.get().streaming && after > before) sounds.viewer();
     this.store.set({ viewers });
+    this.applyStreamBitrate();
   }
 
   // ---------- interno ----------
@@ -627,6 +679,7 @@ export class VoiceManager {
       }
     }
     this.store.set({ streams });
+    this.applyStreamBitrate();
   }
 
   private async reportState(includeChannel = false) {
