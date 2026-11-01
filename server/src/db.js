@@ -70,6 +70,10 @@ const MIGRATIONS = [
     value TEXT NOT NULL
   );
   `,
+  // v2: kanali samo za čitanje (npr. changelog)
+  `
+  ALTER TABLE channels ADD COLUMN readonly INTEGER NOT NULL DEFAULT 0;
+  `,
 ];
 
 export function openDb(file) {

@@ -122,7 +122,7 @@ export function ChatView({ channelId }: { channelId: number }) {
         {items.map((m, i) => {
           const prev = items[i - 1];
           const newDay = !prev || new Date(prev.createdAt).toDateString() !== new Date(m.createdAt).toDateString();
-          const grouped = !newDay && prev && prev.userId === m.userId && m.createdAt - prev.createdAt < GROUP_MS && !m.replyTo;
+          const grouped = !channel?.readonly && !newDay && prev && prev.userId === m.userId && m.createdAt - prev.createdAt < GROUP_MS && !m.replyTo;
           return (
             <MessageRow
               key={m.id}
@@ -157,6 +157,11 @@ export function ChatView({ channelId }: { channelId: number }) {
         )}
       </div>
 
+      {channel?.readonly ? (
+        <div className="readonly-note">
+          <Icon name="shield" size={16} /> Ovaj kanal je samo za čitanje — ovdje se automatski objavljuju izmjene svake verzije.
+        </div>
+      ) : (
       <Composer
         ref={composerRef}
         channelId={channelId}
@@ -173,6 +178,7 @@ export function ChatView({ channelId }: { channelId: number }) {
           setReplyTo(null);
         }}
       />
+      )}
 
       {dragging && (
         <div className="drop-overlay">

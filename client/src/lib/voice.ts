@@ -19,6 +19,7 @@ import { presetById, settings, type Settings } from './settings';
 import { sounds } from './sounds';
 import { iceTargetsFor, setIceOverride } from './ice';
 import { pickCodec } from './hw';
+import { startSystemAudio, type SystemAudio } from './sysaudio';
 
 export interface StreamInfo {
   userId: number;
@@ -90,6 +91,7 @@ export class VoiceManager {
   private lastSettings: Settings = settings.get();
   private joinSeq = 0;
   private connectedAt = 0;
+  private sysAudio: SystemAudio | null = null;
 
   constructor(private api: Api) {
     settings.subscribe((s) => this.onSettings(s));
@@ -177,6 +179,11 @@ export class VoiceManager {
 
   private async cleanup() {
     this.teardownAnalyser();
+    if (this.sysAudio) {
+      const sa = this.sysAudio;
+      this.sysAudio = null;
+      await sa.stop();
+    }
     const room = this.room;
     this.room = null;
     this.mic = null;
@@ -243,12 +250,13 @@ export class VoiceManager {
     const bitrate = s.streamBitrateOverride ?? preset.bitrate;
     try {
       const videoCodec = s.streamCodec === 'auto' ? await pickCodec(preset.width, preset.height, preset.fps, bitrate) : s.streamCodec;
+      // Windows aplikacija: zvuk računara snima Rust dio BEZ zvuka Lpcalasa (gledaoci ne čuju sebe).
+      // Ako to ne uspije (npr. stariji Windows), rezerva je zvuk iz dijeljenja ekrana.
+      const native = s.streamAudio ? await startSystemAudio() : null;
       await room.localParticipant.setScreenShareEnabled(
         true,
         {
-          // Zvuk sistema BEZ zvuka ove aplikacije (restrictOwnAudio): gledaoci ne čuju sebe
-          // (glasove iz voice kanala) u streamu. Bez obrade, da zvuk igre ostane čist.
-          audio: s.streamAudio
+          audio: s.streamAudio && !native
             ? {
                 restrictOwnAudio: true,
                 echoCancellation: false,
@@ -262,7 +270,7 @@ export class VoiceManager {
           contentHint: 'motion',
           selfBrowserSurface: 'exclude',
           surfaceSwitching: 'include',
-          systemAudio: s.streamAudio ? 'include' : 'exclude',
+          systemAudio: s.streamAudio && !native ? 'include' : 'exclude',
         },
         {
           videoCodec,
@@ -272,6 +280,21 @@ export class VoiceManager {
           degradationPreference: 'maintain-framerate',
         },
       );
+      if (native) {
+        if (room.localParticipant.isScreenShareEnabled) {
+          this.sysAudio = native;
+          await room.localParticipant.publishTrack(native.track, {
+            source: Track.Source.ScreenShareAudio,
+            name: 'screen_share_audio',
+            dtx: false,
+            red: false,
+            forceStereo: true,
+            audioPreset: { maxBitrate: 128_000 },
+          });
+        } else {
+          await native.stop();
+        }
+      }
       this.store.set({ streaming: room.localParticipant.isScreenShareEnabled });
       if (room.localParticipant.isScreenShareEnabled) sounds.streamStart();
       this.refreshStreams();
@@ -286,10 +309,20 @@ export class VoiceManager {
     const room = this.room;
     if (!room) return;
     await room.localParticipant.setScreenShareEnabled(false).catch(() => {});
+    await this.stopSystemAudio();
     this.store.set({ streaming: false });
     sounds.streamStop();
     this.refreshStreams();
     void this.reportState();
+  }
+
+  private async stopSystemAudio() {
+    const sa = this.sysAudio;
+    if (!sa) return;
+    this.sysAudio = null;
+    const room = this.room;
+    if (room) await room.localParticipant.unpublishTrack(sa.track).catch(() => {});
+    await sa.stop();
   }
 
   clearError() {
@@ -502,6 +535,7 @@ export class VoiceManager {
       })
       .on(RoomEvent.LocalTrackUnpublished, (pub: LocalTrackPublication) => {
         if (pub.source === Track.Source.ScreenShare) {
+          void this.stopSystemAudio();
           this.store.set({ streaming: false });
           this.refreshStreams();
           void this.reportState();

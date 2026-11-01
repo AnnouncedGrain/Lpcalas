@@ -211,6 +211,7 @@ function StreamTile({
   const videoRef = useRef<HTMLVideoElement>(null);
   const [showStats, setShowStats] = useState(s.showStreamStats);
   const [streamVolume, setStreamVolume] = useState(1);
+  const [streamMuted, setStreamMuted] = useState(false);
   const [tick, setTick] = useState(0);
 
   // Spoji video (i zvuk streama) dok gledaš. Track stiže tek nakon pretplate, pa slušamo i događaje.
@@ -241,8 +242,8 @@ function StreamTile({
   useEffect(() => {
     const room = client.voice.getRoom();
     const p = room?.remoteParticipants.get(info.identity);
-    if (p && !info.local) p.setVolume(streamVolume * settings.get().outputVolume, Track.Source.ScreenShareAudio);
-  }, [client, info.identity, info.local, streamVolume, streams]);
+    if (p && !info.local) p.setVolume(streamMuted ? 0 : streamVolume * settings.get().outputVolume, Track.Source.ScreenShareAudio);
+  }, [client, info.identity, info.local, streamVolume, streamMuted, streams]);
 
   return (
     <div className={`stream-tile ${fullscreen ? 'fullscreen' : ''} ${info.local ? 'own' : ''}`} style={fullscreen ? undefined : size}>
@@ -272,6 +273,15 @@ function StreamTile({
         </span>
         <span className="spacer" />
         {watching && !info.local && (
+          <button
+            className={`icon-btn small ${streamMuted ? 'off' : ''}`}
+            title={streamMuted ? 'Uključi zvuk streama' : 'Isključi zvuk streama'}
+            onClick={() => setStreamMuted((m) => !m)}
+          >
+            <Icon name={streamMuted ? 'volumeOff' : 'volume'} size={16} />
+          </button>
+        )}
+        {watching && !info.local && !streamMuted && (
           <input
             type="range"
             className="stream-volume"

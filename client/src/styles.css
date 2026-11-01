@@ -406,3 +406,8 @@ label.inline input { width: 110px; }
 .activity-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .activity-text b { color: var(--text); font-weight: 600; }
 .activity-empty { padding: 4px 6px; }
+.readonly-note { margin: 0 18px 18px; padding: 12px 14px; border-radius: var(--radius-lg); background: var(--bg-1); color: var(--text-2); font-size: 13.5px; display: flex; gap: 8px; align-items: center; }
+.voice-channel { border-radius: 8px; transition: background 0.1s, box-shadow 0.1s; }
+.voice-channel.drop-target { background: rgba(61, 220, 151, 0.08); box-shadow: inset 0 0 0 1px var(--accent-2); }
+.voice-member.draggable { cursor: grab; }
+.voice-member.draggable:active { cursor: grabbing; }

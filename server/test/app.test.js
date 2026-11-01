@@ -156,10 +156,13 @@ test('bootstrap vraća kanale i korisnike', async () => {
   const r = await api('GET', '/api/bootstrap', { token: state.member.token });
   assert.equal(r.status, 200);
   assert.equal(r.json.me.username, 'Emir');
-  assert.equal(r.json.users.length, 2);
+  assert.equal(r.json.users.filter((u) => !u.bot).length, 2);
+  assert.equal(r.json.users.filter((u) => u.bot).length, 1);
   const text = r.json.channels.filter((c) => c.type === 'text');
   const voice = r.json.channels.filter((c) => c.type === 'voice');
-  assert.deepEqual(text.map((c) => c.name), ['opšte', 'klipovi']);
+  assert.deepEqual(text.map((c) => c.name), ['opšte', 'klipovi', 'changelog']);
+  assert.equal(text[2].readonly, true);
+  state.changelog = text[2];
   assert.deepEqual(voice.map((c) => c.name), ['Lobby', 'Gaming 1', 'Gaming 2']);
   state.text = text[0];
   state.voice = voice[0];
@@ -456,3 +459,36 @@ test('admin upravlja kanalima', async () => {
   assert.equal(del.status, 200);
 });
 
+
+test('changelog: objavljuje se jednom po verziji, u kanal se ne može pisati', async () => {
+  const r1 = await api('POST', '/api/changelog', {
+    token: state.admin.token,
+    body: { entries: [{ version: '0.2.1', notes: '- prvo' }, { version: '0.2.2', notes: '- drugo' }, { version: 'x', notes: 'loše' }] },
+  });
+  assert.deepEqual(r1.json.posted, ['0.2.1', '0.2.2']);
+  const r2 = await api('POST', '/api/changelog', { token: state.admin.token, body: { entries: [{ version: '0.2.2', notes: '- drugo' }] } });
+  assert.deepEqual(r2.json.posted, []);
+  const msgs = await api('GET', `/api/channels/${state.changelog.id}/messages`, { token: state.admin.token });
+  assert.equal(msgs.json.messages.length, 2);
+  assert.match(msgs.json.messages[1].content, /Verzija 0\.2\.2/);
+  const write = await api('POST', `/api/channels/${state.changelog.id}/messages`, { token: state.admin.token, body: { content: 'hej' } });
+  assert.equal(write.status, 403);
+  const botLogin = await api('POST', '/api/auth/login', { body: { username: 'lpcalas.bot', password: 'nologin' } });
+  assert.equal(botLogin.status, 401);
+});
+
+test('premještanje: admin može pomjeriti drugog, član samo sebe', async () => {
+  const boot = await api('GET', '/api/bootstrap', { token: state.admin.token });
+  const voice = boot.json.channels.filter((c) => c.type === 'voice');
+  const inv = await api('POST', '/api/invites', { token: state.admin.token, body: { uses: 1 } });
+  const haris = await api('POST', '/api/auth/register', { body: { username: 'haris', password: 'lozinka789', invite: inv.json.code } });
+  await api('POST', '/api/voice/state', { token: haris.json.token, body: { channelId: voice[0].id } });
+  const byMember = await api('POST', '/api/voice/move', { token: haris.json.token, body: { userId: state.admin.user.id, channelId: voice[1].id } });
+  assert.equal(byMember.status, 403);
+  const self = await api('POST', '/api/voice/move', { token: haris.json.token, body: { userId: haris.json.user.id, channelId: voice[1].id } });
+  assert.equal(self.status, 200);
+  const byAdmin = await api('POST', '/api/voice/move', { token: state.admin.token, body: { userId: haris.json.user.id, channelId: voice[2].id } });
+  assert.equal(byAdmin.status, 200, byAdmin.text);
+  const notInVoice = await api('POST', '/api/voice/move', { token: state.admin.token, body: { userId: state.admin.user.id, channelId: voice[2].id } });
+  assert.equal(notInVoice.status, 400);
+});

@@ -526,7 +526,7 @@ function AdminTab() {
     }
   }
 
-  const userList = Object.values(users).sort((a, b) => a.displayName.localeCompare(b.displayName));
+  const userList = Object.values(users).filter((u) => !u.bot).sort((a, b) => a.displayName.localeCompare(b.displayName));
 
   return (
     <>

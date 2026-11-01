@@ -5,6 +5,7 @@ import { VoiceManager } from './voice';
 import { settings, saveSession, type SavedSession } from './settings';
 import { setHotkeys, flashWindow } from './native';
 import { sounds } from './sounds';
+import { CHANGELOG } from '../changelog';
 
 export interface ActivityEntry {
   userId: number;
@@ -78,6 +79,8 @@ export class Client {
     });
     const first = this.store.get().activeTextChannelId;
     if (first) void this.loadMessages(first);
+    // Objavi bilješke ove verzije u #changelog (server pazi da svaka verzija ide samo jednom).
+    void api.postChangelog(CHANGELOG).catch(() => {});
   }
 
   private fromBootstrap(boot: Bootstrap) {
@@ -167,6 +170,9 @@ export class Client {
       });
     });
     on('voice', (voice: VoiceMap) => this.store.set({ voice }));
+    on('voice.move', ({ channelId }: { channelId: number }) => {
+      void this.voice.join(channelId);
+    });
     on('voice.kicked', () => {
       void this.voice.leave(false).then(() => this.voice.store.set({ error: 'Admin te izbacio iz glasovnog kanala.' }));
     });

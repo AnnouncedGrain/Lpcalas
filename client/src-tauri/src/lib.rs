@@ -1,4 +1,5 @@
 mod hotkeys;
+mod sysaudio;
 
 use tauri::Manager;
 use tauri_plugin_window_state::StateFlags;
@@ -32,11 +33,17 @@ pub fn run() {
                 .build(),
         )
         .manage(hotkey_state)
+        .manage(sysaudio::SysAudioState::default())
         .setup(move |app| {
             hotkeys::start(app.handle().clone(), thread_state.clone());
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![set_hotkeys, hotkeys::capture_key])
+        .invoke_handler(tauri::generate_handler![
+            set_hotkeys,
+            hotkeys::capture_key,
+            sysaudio::start_system_audio,
+            sysaudio::stop_system_audio
+        ])
         .run(tauri::generate_context!())
         .expect("greška pri pokretanju aplikacije");
 }

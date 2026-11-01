@@ -5,6 +5,7 @@ export interface User {
   role: 'admin' | 'member';
   avatarUrl: string | null;
   disabled: boolean;
+  bot?: boolean;
   createdAt: number;
 }
 
@@ -13,6 +14,7 @@ export interface Channel {
   name: string;
   type: 'text' | 'voice';
   position: number;
+  readonly?: boolean;
 }
 
 export interface Attachment {

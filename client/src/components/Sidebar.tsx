@@ -18,6 +18,16 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings: () => void }) {
   const connection = useApp((s) => s.connection);
   const myVoiceChannel = useVoice((v) => v.channelId);
   const [openMenu, setOpenMenu] = useState<number | null>(null);
+  const [dropTarget, setDropTarget] = useState<number | null>(null);
+
+  // Prevlačenje osobe u drugi glasovni kanal (admin: bilo koga, ostali: samo sebe).
+  function moveUser(userId: number, channelId: number) {
+    if (userId === me.id) {
+      if (myVoiceChannel !== channelId) void client.voice.join(channelId);
+    } else {
+      client.api.voiceMove(userId, channelId).catch((err) => alert(err.message));
+    }
+  }
 
   // Klik bilo gdje drugo ili Escape zatvara otvoreni meni.
   useEffect(() => {
@@ -84,7 +94,25 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings: () => void }) {
           )}
         </div>
         {voiceChannels.map((c) => (
-          <div key={c.id} className="voice-channel">
+          <div
+            key={c.id}
+            className={`voice-channel ${dropTarget === c.id ? 'drop-target' : ''}`}
+            onDragOver={(e) => {
+              if (!e.dataTransfer.types.includes(DRAG_TYPE)) return;
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'move';
+              if (dropTarget !== c.id) setDropTarget(c.id);
+            }}
+            onDragLeave={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropTarget(null);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDropTarget(null);
+              const userId = Number(e.dataTransfer.getData(DRAG_TYPE));
+              if (userId) moveUser(userId, c.id);
+            }}
+          >
             <button
               className={`channel ${myVoiceChannel === c.id ? 'connected' : ''} ${view === 'voice' && myVoiceChannel === c.id ? 'active' : ''}`}
               onClick={() => (myVoiceChannel === c.id ? client.showVoiceView() : client.openVoiceChannel(c.id))}
@@ -127,6 +155,8 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings: () => void }) {
   }
 }
 
+const DRAG_TYPE = 'application/x-lpcalas-user';
+
 function VoiceMemberRow({ member, menuOpen: menu, onMenu }: { member: VoiceMember; menuOpen: boolean; onMenu: (open: boolean) => void }) {
   const client = useClient();
   const user = useApp((s) => s.users[member.userId]);
@@ -136,16 +166,23 @@ function VoiceMemberRow({ member, menuOpen: menu, onMenu }: { member: VoiceMembe
   const isMe = me.id === member.userId;
   const since = useApp((s) => s.onlineSince[member.userId]);
   const volume = s.userVolumes[String(member.userId)] ?? 1;
+  const canDrag = isMe || me.role === 'admin';
 
   return (
     <div className="voice-member-wrap">
       <div
-        className="voice-member"
+        className={`voice-member ${canDrag ? 'draggable' : ''}`}
+        draggable={canDrag}
+        onDragStart={(e) => {
+          e.dataTransfer.setData(DRAG_TYPE, String(member.userId));
+          e.dataTransfer.effectAllowed = 'move';
+          onMenu(false);
+        }}
         onContextMenu={(e) => {
           e.preventDefault();
           onMenu(isMe ? false : !menu);
         }}
-        title={`${since ? `Online ${formatDuration(Date.now() - since)}` : ''}${isMe ? '' : '\nDesni klik: jačina, poke'}`}
+        title={`${since ? `Online ${formatDuration(Date.now() - since)}` : ''}${isMe ? '' : '\nDesni klik: jačina, poke'}${canDrag ? '\nPrevuci u drugi kanal da premjestiš' : ''}`}
       >
         <Avatar user={user} size={22} baseUrl={client.api.baseUrl} speaking={speaking} />
         <span className="voice-member-name">{user?.displayName || '...'}</span>

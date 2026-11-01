@@ -13,7 +13,8 @@ import { LiveKit, roomName, channelIdFromRoom } from './livekit.js';
 import { receiveUpload, serveFile, filePath, guessMime, safeFilename } from './files.js';
 import { isRtcPath, proxyHttp, proxyUpgrade } from './proxy.js';
 
-export const VERSION = '0.1.0';
+export const VERSION = '0.2.2';
+const BOT_USERNAME = 'lpcalas.bot';
 const USERNAME_RE = /^[a-zA-Z0-9_.-]{3,24}$/;
 const MAX_MESSAGE = 4000;
 const PAGE = 50;
@@ -31,11 +32,16 @@ export function createApp(config, { log = console } = {}) {
   const uploadLimiter = new RateLimiter(30, 60 * 1000);
   const now = () => Date.now();
 
-  seed();
 
   // ---------- serijalizacija ----------
 
   const userStmt = db.prepare('SELECT * FROM users WHERE id = ?');
+  let botId = 0;
+  seed();
+
+  function humanCount() {
+    return db.prepare('SELECT COUNT(*) AS n FROM users WHERE username != ?').get(BOT_USERNAME).n;
+  }
 
   function publicUser(u) {
     return {
@@ -45,12 +51,13 @@ export function createApp(config, { log = console } = {}) {
       role: u.role,
       avatarUrl: u.avatar_key ? `/a/${u.avatar_key}` : null,
       disabled: Boolean(u.disabled),
+      bot: u.username === BOT_USERNAME,
       createdAt: u.created_at,
     };
   }
 
   function publicChannel(c) {
-    return { id: c.id, name: c.name, type: c.type, position: c.position };
+    return { id: c.id, name: c.name, type: c.type, position: c.position, readonly: Boolean(c.readonly) };
   }
 
   function publicAttachment(a) {
@@ -150,7 +157,24 @@ export function createApp(config, { log = console } = {}) {
         ins.run('Gaming 2', 'voice', 2, now());
       });
     }
-    const users = db.prepare('SELECT COUNT(*) AS n FROM users').get().n;
+    // Sistemski korisnik koji piše changelog (ne može se prijaviti) i kanal za changelog.
+    let bot = db.prepare('SELECT * FROM users WHERE username = ?').get(BOT_USERNAME);
+    if (!bot) {
+      const info = db
+        .prepare("INSERT INTO users (username, display_name, password_hash, role, disabled, created_at) VALUES (?, 'Lpcalas', 'nologin', 'member', 1, ?)")
+        .run(BOT_USERNAME, now());
+      bot = userStmt.get(Number(info.lastInsertRowid));
+    }
+    botId = bot.id;
+    let changelog = db.prepare('SELECT * FROM channels WHERE id = ?').get(Number(getSetting(db, 'changelog_channel')) || 0);
+    if (!changelog) {
+      const pos = db.prepare("SELECT COALESCE(MAX(position), -1) + 1 AS p FROM channels WHERE type = 'text'").get().p;
+      const info = db
+        .prepare("INSERT INTO channels (name, type, position, readonly, created_at) VALUES ('changelog', 'text', ?, 1, ?)")
+        .run(pos, now());
+      setSetting(db, 'changelog_channel', Number(info.lastInsertRowid));
+    }
+    const users = humanCount();
     if (users === 0) {
       let code = getSetting(db, 'first_invite');
       const exists = code && db.prepare('SELECT 1 FROM invites WHERE code = ?').get(code);
@@ -181,7 +205,7 @@ export function createApp(config, { log = console } = {}) {
     livekitUrl: livekitUrlFor(ctx.req),
     voiceEnabled: livekit.configured,
     maxUploadBytes: config.maxUploadBytes,
-    needsFirstUser: db.prepare('SELECT COUNT(*) AS n FROM users').get().n === 0,
+    needsFirstUser: humanCount() === 0,
   }));
 
   r.post('/api/auth/register', async (ctx) => {
@@ -203,7 +227,7 @@ export function createApp(config, { log = console } = {}) {
       if (db.prepare('SELECT 1 FROM users WHERE username = ?').get(username)) {
         throw new HttpError(409, 'To korisničko ime je zauzeto.', 'username_taken');
       }
-      const isFirst = db.prepare('SELECT COUNT(*) AS n FROM users').get().n === 0;
+      const isFirst = humanCount() === 0;
       const info = db
         .prepare('INSERT INTO users (username, display_name, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?)')
         .run(username, displayName, passwordHash, isFirst ? 'admin' : 'member', now());
@@ -338,6 +362,7 @@ export function createApp(config, { log = console } = {}) {
   r.post('/api/channels/:id/messages', async (ctx) => {
     if (!messageLimiter.allow(`msg:${ctx.user.id}`)) throw tooMany('Šalješ poruke prebrzo.');
     const c = getChannel(id(ctx.params.id), 'text');
+    if (c.readonly) throw forbidden('U ovaj kanal se ne može pisati.');
     const body = await readJson(ctx.req);
     const content = typeof body.content === 'string' ? body.content.replace(/\s+$/, '') : '';
     if (content.length > MAX_MESSAGE) throw bad(`Poruka je preduga (max ${MAX_MESSAGE} znakova).`, 'validation');
@@ -542,6 +567,45 @@ export function createApp(config, { log = console } = {}) {
     const online = hub.isOnline(target.id);
     hub.sendToUser(target.id, 'poke', { from: ctx.user.id, message, at: now() });
     return { delivered: online };
+  });
+
+  // ---------- changelog ----------
+  // Aplikacija pošalje bilješke svoje verzije; server ih jednom objavi u kanalu #changelog.
+
+  r.post('/api/changelog', async (ctx) => {
+    const body = await readJson(ctx.req, 256 * 1024);
+    const entries = Array.isArray(body.entries) ? body.entries.slice(0, 100) : [];
+    const channelId = Number(getSetting(db, 'changelog_channel'));
+    if (!db.prepare('SELECT 1 FROM channels WHERE id = ?').get(channelId)) return { posted: [] };
+    const posted = [];
+    for (const e of entries) {
+      const version = String(e?.version || '');
+      const notes = typeof e?.notes === 'string' ? e.notes.trim().slice(0, 3800) : '';
+      if (!/^\d+\.\d+\.\d+$/.test(version) || !notes) continue;
+      if (getSetting(db, `changelog:${version}`)) continue;
+      const info = db
+        .prepare('INSERT INTO messages (channel_id, user_id, content, created_at) VALUES (?, ?, ?, ?)')
+        .run(channelId, botId, `**Verzija ${version}**\n${notes}`, now());
+      setSetting(db, `changelog:${version}`, Number(info.lastInsertRowid));
+      const message = loadMessage(Number(info.lastInsertRowid));
+      hub.broadcast('message', message);
+      posted.push(version);
+    }
+    return { posted };
+  });
+
+  // ---------- premještanje između glasovnih kanala ----------
+
+  r.post('/api/voice/move', async (ctx) => {
+    const body = await readJson(ctx.req);
+    const userId = id(body.userId, 'korisnik');
+    const target = getChannel(id(body.channelId, 'kanal'), 'voice');
+    if (userId !== ctx.user.id) requireAdmin(ctx);
+    const current = hub.channelOf(userId);
+    if (current === null) throw bad('Korisnik nije u glasovnom kanalu.');
+    if (current === target.id) return { ok: true };
+    hub.sendToUser(userId, 'voice.move', { channelId: target.id, by: ctx.user.id });
+    return { ok: true };
   });
 
   // ---------- admin ----------

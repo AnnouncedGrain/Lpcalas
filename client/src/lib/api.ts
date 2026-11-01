@@ -101,6 +101,8 @@ export class Api {
     return this.post('/api/voice/state', state);
   }
   voiceKick(userId: number) { return this.post('/api/voice/kick', { userId }); }
+  voiceMove(userId: number, channelId: number) { return this.post('/api/voice/move', { userId, channelId }); }
+  postChangelog(entries: Array<{ version: string; notes: string }>) { return this.post<{ posted: string[] }>('/api/changelog', { entries }); }
   poke(userId: number, message: string) { return this.post<{ delivered: boolean }>(`/api/users/${userId}/poke`, { message }); }
 
   createChannel(name: string, type: 'text' | 'voice') { return this.post<Channel>('/api/channels', { name, type }); }
