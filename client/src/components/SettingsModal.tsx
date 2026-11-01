@@ -461,7 +461,7 @@ function AppTab() {
         <Toggle checked={s.sounds} onChange={(v) => settings.set({ sounds: v })} label="Zvukovi (ulazak, izlazak, poruke, mute)" />
       </Section>
       <Section title="O aplikaciji">
-        <p>Lpcalas v0.1.1 · {isTauri ? 'Windows aplikacija' : 'web verzija'}</p>
+        <p>Lpcalas v0.1.2 · {isTauri ? 'Windows aplikacija' : 'web verzija'}</p>
         <p className="muted">Server: {server} ({client.api.baseUrl})</p>
       </Section>
     </>

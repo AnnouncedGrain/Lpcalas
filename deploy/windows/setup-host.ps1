@@ -131,9 +131,13 @@ try {
 Write-Host "`n============================================================" -ForegroundColor Green
 Write-Host " LPCALAS SERVER RADI" -ForegroundColor Green
 Write-Host "============================================================" -ForegroundColor Green
-Write-Host " Na ovom racunaru u aplikaciji upisi:   http://localhost:8080"
+if ($localIp) {
+    Write-Host " Na ovom racunaru (i u istoj kucnoj mrezi) upisi:  ${localIp}:8080"
+} else {
+    Write-Host " Na ovom racunaru u aplikaciji upisi:   localhost:8080"
+}
 if ($publicIp) {
-    Write-Host " Prijatelji u aplikaciji upisuju:       http://${publicIp}:8080"
+    Write-Host " Prijatelji preko interneta upisuju:   ${publicIp}:8080"
 }
 $invitePath = Join-Path $DeployDir 'data\PRVA-POZIVNICA.txt'
 if (Test-Path $invitePath) {

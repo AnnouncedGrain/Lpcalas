@@ -17,7 +17,7 @@ import type { Api } from './api';
 import { Store } from './store';
 import { presetById, settings, type Settings } from './settings';
 import { sounds } from './sounds';
-import { iceOverrideFor, setIceOverride } from './ice';
+import { iceTargetsFor, setIceOverride } from './ice';
 
 export interface StreamInfo {
   userId: number;
@@ -100,11 +100,13 @@ export class VoiceManager {
     if (this.store.get().channelId === channelId && this.room) return;
     await this.leave(false);
     const seq = ++this.joinSeq;
+    this.connectedAt = 0;
     this.store.set({ channelId, status: 'connecting', error: null, streams: [], speaking: [], streaming: false });
     const s = settings.get();
     try {
       const { token, url } = await this.api.voiceToken(channelId);
-      setIceOverride(iceOverrideFor(this.api.baseUrl));
+      setIceOverride(await iceTargetsFor(this.api.baseUrl));
+      if (seq !== this.joinSeq) return;
       if (seq !== this.joinSeq) return;
       const room = new Room({
         adaptiveStream: true,
@@ -441,7 +443,7 @@ export class VoiceManager {
               ? 'Admin te izbacio iz glasovnog kanala.'
               : reason === DisconnectReason.CLIENT_INITIATED
                 ? null
-                : Date.now() - this.connectedAt < 45_000
+                : this.connectedAt === 0 || Date.now() - this.connectedAt < 45_000
                   ? 'Glasovni server je dostupan, ali glas ne prolazi. Provjeri da LiveKit radi i da su TCP 7881 i UDP 7882 otvoreni (firewall/ruter).'
                   : 'Veza s glasovnim serverom je prekinuta.';
         void this.leave(false).then(() => {
