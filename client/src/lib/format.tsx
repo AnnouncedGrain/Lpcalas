@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react';
 import { openExternal } from './native';
+import { locale, t } from './i18n';
 
 export function formatTime(ts: number): string {
   const d = new Date(ts);
-  return d.toLocaleTimeString('bs-BA', { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' });
 }
 
 export function formatDay(ts: number): string {
@@ -12,9 +13,9 @@ export function formatDay(ts: number): string {
   const yesterday = new Date();
   yesterday.setDate(today.getDate() - 1);
   const same = (a: Date, b: Date) => a.toDateString() === b.toDateString();
-  if (same(d, today)) return 'Danas';
-  if (same(d, yesterday)) return 'Jučer';
-  return d.toLocaleDateString('bs-BA', { day: 'numeric', month: 'long', year: 'numeric' });
+  if (same(d, today)) return t('Danas');
+  if (same(d, yesterday)) return t('Jučer');
+  return d.toLocaleDateString(locale(), { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 export function formatSize(bytes: number): string {
@@ -142,11 +143,11 @@ export function isOnlyEmoji(text: string): boolean {
 // "2 h 15 min", "5 min", "manje od minute"
 export function formatDuration(ms: number): string {
   const min = Math.floor(ms / 60000);
-  if (min < 1) return 'manje od minute';
+  if (min < 1) return t('manje od minute');
   const d = Math.floor(min / 1440);
   const h = Math.floor((min % 1440) / 60);
   const m = min % 60;
-  if (d > 0) return `${d} d ${h} h`;
+  if (d > 0) return `${d} ${t('d')} ${h} h`;
   if (h > 0) return `${h} h ${m} min`;
   return `${m} min`;
 }

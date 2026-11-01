@@ -53,6 +53,8 @@ export const CHANGELOG: Array<{ version: string; notes: string }> = [
   {
     version: '0.2.3',
     notes: `- Statistika streama pokazuje kako se šalje zvuk (Windows bez Lpcalasa ili stari način)
-- Ako zvuk ne može ići bez Lpcalasa, streamer odmah dobije poruku s razlogom`,
+- Ako zvuk ne može ići bez Lpcalasa, streamer odmah dobije poruku s razlogom
+- Izbor jezika: bosanski ili engleski (Postavke → Aplikacija → Jezik, ili na prijavi)
+- Language option: Bosnian or English (Settings → App → Language, or on the login screen)`,
   },
 ];

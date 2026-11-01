@@ -8,6 +8,7 @@ import type { Attachment, Message } from '../lib/types';
 import { Avatar } from './Avatar';
 import { Icon } from './Icon';
 import { openExternal } from '../lib/native';
+import { t } from '../lib/i18n';
 
 const QUICK_EMOJI = ['👍', '😂', '❤️', '🔥', '😮', '😢', '👀', '💀', '🎉', 'GG'];
 const GROUP_MS = 5 * 60 * 1000;
@@ -110,15 +111,15 @@ export function ChatView({ channelId }: { channelId: number }) {
       </header>
 
       <div className="messages" ref={scrollRef} onScroll={onScroll}>
-        {data?.loadingOlder && <div className="loading-older">Učitavam starije poruke...</div>}
+        {data?.loadingOlder && <div className="loading-older">{t('Učitavam starije poruke...')}</div>}
         {data && !data.hasMore && (
           <div className="channel-start">
             <div className="channel-start-icon"><Icon name="hash" size={36} /></div>
-            <h3>Dobro došli u #{channel?.name}</h3>
-            <p className="muted">Ovo je početak kanala.</p>
+            <h3>{t('Dobro došli u #{name}', { name: channel?.name || '' })}</h3>
+            <p className="muted">{t('Ovo je početak kanala.')}</p>
           </div>
         )}
-        {!data && <div className="loading-older">Učitavam...</div>}
+        {!data && <div className="loading-older">{t('Učitavam...')}</div>}
         {items.map((m, i) => {
           const prev = items[i - 1];
           const newDay = !prev || new Date(prev.createdAt).toDateString() !== new Date(m.createdAt).toDateString();
@@ -152,15 +153,14 @@ export function ChatView({ channelId }: { channelId: number }) {
         {typingNames.length > 0 && (
           <span>
             <span className="typing-dots"><i /><i /><i /></span>
-            <b>{typingNames.slice(0, 3).join(', ')}</b> {typingNames.length === 1 ? 'kuca...' : 'kucaju...'}
+            <b>{typingNames.slice(0, 3).join(', ')}</b> {typingNames.length === 1 ? t('kuca...') : t('kucaju...')}
           </span>
         )}
       </div>
 
       {channel?.readonly ? (
         <div className="readonly-note">
-          <Icon name="shield" size={16} /> Ovaj kanal je samo za čitanje — ovdje se automatski objavljuju izmjene svake verzije.
-        </div>
+          <Icon name="shield" size={16} /> {t('Ovaj kanal je samo za čitanje — ovdje se automatski objavljuju izmjene svake verzije.')}</div>
       ) : (
       <Composer
         ref={composerRef}
@@ -184,7 +184,7 @@ export function ChatView({ channelId }: { channelId: number }) {
         <div className="drop-overlay">
           <div>
             <Icon name="paperclip" size={40} />
-            <p>Pusti fajlove da ih pošalješ u #{channel?.name}</p>
+            <p>{t('Pusti fajlove da ih pošalješ u #{name}', { name: channel?.name || '' })}</p>
           </div>
         </div>
       )}
@@ -233,7 +233,7 @@ function MessageRow({
   }
 
   async function remove() {
-    if (!confirm('Obrisati ovu poruku?')) return;
+    if (!confirm(t('Obrisati ovu poruku?'))) return;
     await client.api.deleteMessage(m.id).catch((e) => alert(e.message));
   }
 
@@ -249,7 +249,7 @@ function MessageRow({
           <div className="reply-preview">
             <span className="reply-line" />
             {m.replyTo.deleted ? (
-              <i className="muted">Originalna poruka je obrisana</i>
+              <i className="muted">{t('Originalna poruka je obrisana')}</i>
             ) : (
               <>
                 <b>{users[m.replyTo.userId ?? 0]?.displayName || '?'}</b>
@@ -270,8 +270,8 @@ function MessageRow({
             {!grouped && (
               <div className="message-head">
                 <span className="author">{author?.displayName || 'Nepoznat'}</span>
-                {author?.role === 'admin' && <Icon name="shield" size={13} className="admin-badge" title="Admin" />}
-                <span className="time">{formatDay(m.createdAt)} u {formatTime(m.createdAt)}</span>
+                {author?.role === 'admin' && <Icon name="shield" size={13} className="admin-badge" title={t('Admin')} />}
+                <span className="time">{t('{day} u {time}', { day: formatDay(m.createdAt), time: formatTime(m.createdAt) })}</span>
               </div>
             )}
             {editing ? (
@@ -280,7 +280,7 @@ function MessageRow({
               m.content && (
                 <div className={`message-content ${bigEmoji ? 'big-emoji' : ''}`}>
                   {renderMarkdown(m.content)}
-                  {m.editedAt && <span className="edited"> (uređeno)</span>}
+                  {m.editedAt && <span className="edited"> {t('(uređeno)')}</span>}
                 </div>
               )
             )}
@@ -308,19 +308,19 @@ function MessageRow({
           </div>
         </div>
         <div className="message-actions">
-          <button className="icon-btn small" title="Reakcija" onClick={() => setPicker((x) => !x)}>
+          <button className="icon-btn small" title={t('Reakcija')} onClick={() => setPicker((x) => !x)}>
             <Icon name="smile" size={16} />
           </button>
-          <button className="icon-btn small" title="Odgovori" onClick={onReply}>
+          <button className="icon-btn small" title={t('Odgovori')} onClick={onReply}>
             <Icon name="reply" size={16} />
           </button>
           {isMine && (
-            <button className="icon-btn small" title="Uredi" onClick={onEdit}>
+            <button className="icon-btn small" title={t('Uredi')} onClick={onEdit}>
               <Icon name="edit" size={16} />
             </button>
           )}
           {canDelete && (
-            <button className="icon-btn small danger" title="Obriši" onClick={remove}>
+            <button className="icon-btn small danger" title={t('Obriši')} onClick={remove}>
               <Icon name="trash" size={16} />
             </button>
           )}
@@ -371,7 +371,7 @@ function AttachmentView({ a, base, onOpenImage }: { a: Attachment; base: string;
         <div className="att-file-name">{a.filename}</div>
         <div className="muted small">{formatSize(a.size)}</div>
       </div>
-      <button className="icon-btn" title="Preuzmi" onClick={() => void openExternal(src)}>
+      <button className="icon-btn" title={t('Preuzmi')} onClick={() => void openExternal(src)}>
         <Icon name="download" size={18} />
       </button>
     </div>
@@ -419,7 +419,7 @@ function EditBox({ message, onDone }: { message: Message; onDone: () => void }) 
           }
         }}
       />
-      <div className="muted small">Escape za odustani · Enter za sačuvaj</div>
+      <div className="muted small">{t('Escape za odustani · Enter za sačuvaj')}</div>
     </div>
   );
 }
@@ -433,13 +433,13 @@ function Lightbox({ attachment, baseUrl, onClose }: { attachment: Attachment; ba
   const src = baseUrl + attachment.url;
   return (
     <div className="lightbox" onClick={onClose}>
-      <button className="lightbox-close" title="Zatvori (Esc)" onClick={onClose}>
+      <button className="lightbox-close" title={t('Zatvori (Esc)')} onClick={onClose}>
         <Icon name="x" size={22} />
       </button>
       <img src={src} alt={attachment.filename} onClick={(e) => e.stopPropagation()} />
       <div className="lightbox-bar" onClick={(e) => e.stopPropagation()}>
         <span>{attachment.filename}</span>
-        <button className="link" onClick={() => void openExternal(src)}>Otvori original</button>
+        <button className="link" onClick={() => void openExternal(src)}>{t('Otvori original')}</button>
       </div>
     </div>
   );
@@ -496,7 +496,7 @@ const Composer = forwardRef<ComposerHandle, {
     (files: File[]) => {
       for (const file of files.slice(0, 10)) {
         if (file.size > maxUpload) {
-          setError(`"${file.name}" je prevelik (max ${formatSize(maxUpload)}).`);
+          setError(t('"{name}" je prevelik (max {max}).', { name: file.name, max: formatSize(maxUpload) }));
           continue;
         }
         const localId = nextLocalId++;
@@ -567,10 +567,9 @@ const Composer = forwardRef<ComposerHandle, {
     <div className="composer-wrap">
       {replyTo && (
         <div className="composer-reply">
-          <span>
-            Odgovaraš korisniku <b>{users[replyTo.userId]?.displayName}</b>
+          <span>{t('Odgovaraš korisniku')} <b>{users[replyTo.userId]?.displayName}</b>
           </span>
-          <button className="icon-btn small" onClick={onCancelReply} title="Otkaži">
+          <button className="icon-btn small" onClick={onCancelReply} title={t('Otkaži')}>
             <Icon name="x" size={14} />
           </button>
         </div>
@@ -585,7 +584,7 @@ const Composer = forwardRef<ComposerHandle, {
               {!u.attachment && !u.error && <span className="progress" style={{ width: `${u.progress * 100}%` }} />}
               <button
                 className="icon-btn small remove"
-                title="Ukloni"
+                title={t('Ukloni')}
                 onClick={() => setUploads((list) => list.filter((x) => x.localId !== u.localId))}
               >
                 <Icon name="x" size={14} />
@@ -596,7 +595,7 @@ const Composer = forwardRef<ComposerHandle, {
       )}
       {error && <div className="composer-error" onClick={() => setError(null)}>{error}</div>}
       <div className="composer">
-        <button className="icon-btn" title="Pošalji fajl (slike, video...)" onClick={() => fileRef.current?.click()}>
+        <button className="icon-btn" title={t('Pošalji fajl (slike, video...)')} onClick={() => fileRef.current?.click()}>
           <Icon name="plus" size={20} />
         </button>
         <input
@@ -613,7 +612,7 @@ const Composer = forwardRef<ComposerHandle, {
           ref={textRef}
           value={text}
           rows={1}
-          placeholder={`Poruka u #${channelName}`}
+          placeholder={t('Poruka u #{name}', { name: channelName })}
           onChange={(e) => {
             setText(e.target.value);
             if (e.target.value) client.notifyTyping(channelId);
@@ -623,7 +622,7 @@ const Composer = forwardRef<ComposerHandle, {
           maxLength={4000}
         />
         <button className="send-btn" onClick={() => void send()} disabled={sending || uploading || (!text.trim() && !uploads.some((u) => u.attachment))}>
-          {uploading ? 'Šaljem fajl...' : 'Pošalji'}
+          {uploading ? t('Šaljem fajl...') : t('Pošalji')}
         </button>
       </div>
     </div>

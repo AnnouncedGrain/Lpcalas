@@ -3,6 +3,7 @@ import { useApp, useClient } from '../lib/context';
 import { formatDuration, formatTime } from '../lib/format';
 import { Avatar } from './Avatar';
 import { Icon } from './Icon';
+import { t } from '../lib/i18n';
 
 export function MemberList() {
   const client = useClient();
@@ -32,7 +33,7 @@ export function MemberList() {
   const inVoice = new Map<number, string>();
   for (const [cid, members] of Object.entries(voice)) {
     const name = channels.find((c) => c.id === Number(cid))?.name || '';
-    for (const m of members) inVoice.set(m.userId, m.streaming ? `Streama u ${name}` : `U kanalu ${name}`);
+    for (const m of members) inVoice.set(m.userId, m.streaming ? t('Streama u {name}', { name }) : t('U kanalu {name}', { name }));
   }
 
   const all = Object.values(users).filter((u) => !u.disabled);
@@ -49,7 +50,7 @@ export function MemberList() {
       }}
       title={
         isOnline
-          ? `Online ${onlineSince[u.id] ? formatDuration(Date.now() - onlineSince[u.id]) : ''}${u.id === meId ? '' : '\nDesni klik: Poke'}`
+          ? `${t('Online')} ${onlineSince[u.id] ? formatDuration(Date.now() - onlineSince[u.id]) : ''}${u.id === meId ? '' : '\n' + t('Desni klik: Poke')}`
           : undefined
       }
     >
@@ -64,8 +65,7 @@ export function MemberList() {
       {menu === u.id && (
         <div className="member-menu right" onClick={(e) => e.stopPropagation()}>
           <button className="small" onClick={() => { setMenu(null); client.openPoke(u.id); }}>
-            <Icon name="bell" size={14} /> Poke
-          </button>
+            <Icon name="bell" size={14} /> {t('Poke')}</button>
         </div>
       )}
     </div>
@@ -74,21 +74,21 @@ export function MemberList() {
   return (
     <aside className="member-list">
       <div className="member-scroll">
-        <div className="section-title"><span>Online — {on.length}</span></div>
+        <div className="section-title"><span>{t('Online')} — {on.length}</span></div>
         {on.map((u) => row(u, true))}
-        {off.length > 0 && <div className="section-title"><span>Offline — {off.length}</span></div>}
+        {off.length > 0 && <div className="section-title"><span>{t('Offline')} — {off.length}</span></div>}
         {off.map((u) => row(u, false))}
       </div>
       <div className="activity-log">
-        <div className="section-title"><span>Aktivnost</span></div>
+        <div className="section-title"><span>{t('Aktivnost')}</span></div>
         <div className="activity-scroll">
-          {activity.length === 0 && <div className="muted small activity-empty">Još nema aktivnosti.</div>}
+          {activity.length === 0 && <div className="muted small activity-empty">{t('Još nema aktivnosti.')}</div>}
           {[...activity].reverse().slice(0, 50).map((a, i) => (
             <div key={`${a.at}-${a.userId}-${i}`} className={`activity-row ${a.type}`}>
               <span className="activity-time">{formatTime(a.at)}</span>
               <span className="activity-dot" />
               <span className="activity-text">
-                <b>{users[a.userId]?.displayName || '?'}</b> {a.type === 'join' ? 'ušao' : 'izašao'}
+                <b>{users[a.userId]?.displayName || '?'}</b> {a.type === 'join' ? t('ušao') : t('izašao')}
               </span>
             </div>
           ))}

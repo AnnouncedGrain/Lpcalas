@@ -1,5 +1,6 @@
 // Most prema Tauri (Rust) dijelu aplikacije. U običnom browseru sve ima rezervu.
 import type { HotkeyBinding } from './settings';
+import { t } from './i18n';
 
 export const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
@@ -78,9 +79,9 @@ export async function captureKey(): Promise<HotkeyBinding | null> {
       finish({ vk: e.keyCode, name: e.code.replace(/^Key/, '').replace(/^Digit/, '') || e.key });
     };
     const onMouse = (e: MouseEvent) => {
-      if (e.button === 3) finish({ vk: 0x05, name: 'Miš 4' });
-      else if (e.button === 4) finish({ vk: 0x06, name: 'Miš 5' });
-      else if (e.button === 1) finish({ vk: 0x04, name: 'Srednji klik' });
+      if (e.button === 3) finish({ vk: 0x05, name: t('Miš 4') });
+      else if (e.button === 4) finish({ vk: 0x06, name: t('Miš 5') });
+      else if (e.button === 1) finish({ vk: 0x04, name: t('Srednji klik') });
     };
     window.addEventListener('keydown', onKey, true);
     window.addEventListener('mousedown', onMouse, true);

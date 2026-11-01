@@ -20,6 +20,7 @@ import { sounds } from './sounds';
 import { iceTargetsFor, setIceOverride } from './ice';
 import { pickCodec } from './hw';
 import { lastSystemAudioError, startSystemAudio, type SystemAudio } from './sysaudio';
+import { t } from './i18n';
 
 export interface StreamInfo {
   userId: number;
@@ -158,14 +159,14 @@ export class VoiceManager {
       const raw = String(err?.message || '');
       const msg =
         err?.name === 'NotAllowedError'
-          ? 'Aplikacija nema pristup mikrofonu. Dozvoli mikrofon u Windows postavkama (Privatnost → Mikrofon).'
+          ? t('Aplikacija nema pristup mikrofonu. Dozvoli mikrofon u Windows postavkama (Privatnost → Mikrofon).')
           : err?.name === 'NotFoundError'
-            ? 'Nije pronađen mikrofon. Provjeri da je priključen i izabran u postavkama.'
+            ? t('Nije pronađen mikrofon. Provjeri da je priključen i izabran u postavkama.')
             : /signal|websocket|could not establish/i.test(raw)
-              ? 'Ne mogu se spojiti na glasovni server. Provjeri da server radi (LiveKit) i da je port 8080 otvoren.'
+              ? t('Ne mogu se spojiti na glasovni server. Provjeri da server radi (LiveKit) i da je port 8080 otvoren.')
               : /pc connection|ice|peer connection|timed out|timeout/i.test(raw)
-                ? 'Glasovni server je dostupan, ali glas ne prolazi. Provjeri da su na ruteru otvoreni UDP 7882 i TCP 7881.'
-                : raw || 'Spajanje na glasovni kanal nije uspjelo.';
+                ? t('Glasovni server je dostupan, ali glas ne prolazi. Provjeri da su na ruteru otvoreni UDP 7882 i TCP 7881.')
+                : raw || t('Spajanje na glasovni kanal nije uspjelo.');
       this.store.set({ ...INITIAL, muted: this.store.get().muted, deafened: this.store.get().deafened, error: msg });
     }
   }
@@ -308,7 +309,7 @@ export class VoiceManager {
       });
       if (mode === 'browser' && room.localParticipant.isScreenShareEnabled) {
         this.store.set({
-          error: `Zvuk streama ide starim putem — gledaoci bi mogli čuti sebe. Razlog: ${lastSystemAudioError || 'nepoznat'}. Pošalji ovo Claudeu.`,
+          error: t('Zvuk streama ide starim putem — gledaoci bi mogli čuti sebe. Razlog: {err}. Pošalji ovo Claudeu.', { err: lastSystemAudioError || t('nepoznat razlog') }),
         });
       }
       if (room.localParticipant.isScreenShareEnabled) sounds.streamStart();
@@ -568,14 +569,14 @@ export class VoiceManager {
         if (this.room !== room) return;
         const msg =
           reason === DisconnectReason.DUPLICATE_IDENTITY
-            ? 'Spojio si se na glasovni kanal s drugog uređaja.'
+            ? t('Spojio si se na glasovni kanal s drugog uređaja.')
             : reason === DisconnectReason.PARTICIPANT_REMOVED
-              ? 'Admin te izbacio iz glasovnog kanala.'
+              ? t('Admin te izbacio iz glasovnog kanala.')
               : reason === DisconnectReason.CLIENT_INITIATED
                 ? null
                 : this.connectedAt === 0 || Date.now() - this.connectedAt < 45_000
-                  ? 'Glasovni server je dostupan, ali glas ne prolazi. Provjeri da LiveKit radi i da su TCP 7881 i UDP 7882 otvoreni (firewall/ruter).'
-                  : 'Veza s glasovnim serverom je prekinuta.';
+                  ? t('Glasovni server je dostupan, ali glas ne prolazi. Provjeri da LiveKit radi i da su TCP 7881 i UDP 7882 otvoreni (firewall/ruter).')
+                  : t('Veza s glasovnim serverom je prekinuta.');
         void this.leave(false).then(() => {
           if (msg) this.store.set({ error: msg });
         });

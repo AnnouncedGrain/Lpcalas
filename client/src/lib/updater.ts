@@ -2,6 +2,7 @@
 // (potpisanu našim ključem) i ponovo se pokreće.
 import { isTauri } from './native';
 import { Store } from './store';
+import { t } from './i18n';
 
 export interface UpdateState {
   status: 'idle' | 'checking' | 'available' | 'downloading' | 'installing' | 'uptodate' | 'error';
@@ -25,7 +26,7 @@ let pending: any = null;
 
 export async function checkForUpdate(manual = false): Promise<void> {
   if (!isTauri) {
-    if (manual) updateStore.set({ status: 'error', error: 'Ažuriranje radi samo u Windows aplikaciji.' });
+    if (manual) updateStore.set({ status: 'error', error: t('Ažuriranje radi samo u Windows aplikaciji.') });
     return;
   }
   const cur = updateStore.get().status;

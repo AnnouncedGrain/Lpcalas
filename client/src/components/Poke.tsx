@@ -3,6 +3,7 @@ import { useApp, useClient } from '../lib/context';
 import { formatTime } from '../lib/format';
 import { Avatar } from './Avatar';
 import { Icon } from './Icon';
+import { t } from '../lib/i18n';
 
 // Prozor za slanje pokea (otvara se iz menija na članu).
 export function PokeComposer() {
@@ -29,7 +30,7 @@ export function PokeComposer() {
     try {
       const delivered = await client.sendPoke(targetId!, message);
       if (!delivered) {
-        setError(`${target!.displayName} trenutno nije online.`);
+        setError(t('{name} trenutno nije online.', { name: target!.displayName }));
         return;
       }
       close();
@@ -46,15 +47,15 @@ export function PokeComposer() {
         <div className="poke-head">
           <Avatar user={target} size={40} baseUrl={client.api.baseUrl} />
           <div>
-            <div className="poke-title">Poke za {target.displayName}</div>
-            <div className="muted small">Dobit će zvuk i prozor s porukom.</div>
+            <div className="poke-title">{t('Poke za {name}', { name: target.displayName })}</div>
+            <div className="muted small">{t('Dobit će zvuk i prozor s porukom.')}</div>
           </div>
         </div>
         <input
           ref={inputRef}
           value={message}
           maxLength={200}
-          placeholder="Poruka (opcionalno), npr. dođi u Lobby"
+          placeholder={t('Poruka (opcionalno), npr. dođi u Lobby')}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') void send();
@@ -63,10 +64,9 @@ export function PokeComposer() {
         />
         {error && <p className="error">{error}</p>}
         <div className="row end">
-          <button onClick={close}>Odustani</button>
+          <button onClick={close}>{t('Odustani')}</button>
           <button className="primary" disabled={busy} onClick={() => void send()}>
-            <Icon name="bell" size={16} /> Pošalji poke
-          </button>
+            <Icon name="bell" size={16} /> {t('Pošalji poke')}</button>
         </div>
       </div>
     </div>
@@ -88,14 +88,12 @@ export function PokeAlerts() {
             <Avatar user={from} size={36} baseUrl={client.api.baseUrl} />
             <div className="poke-alert-body">
               <div>
-                <b>{from?.displayName || 'Neko'}</b> te pokeao <span className="muted small">{formatTime(p.at)}</span>
+                <b>{from?.displayName || t('Neko')}</b> {t('te pokeao')} <span className="muted small">{formatTime(p.at)}</span>
               </div>
               {p.message && <div className="poke-message">{p.message}</div>}
             </div>
-            <button className="small" onClick={() => client.openPoke(p.from)} title="Uzvrati poke">
-              Uzvrati
-            </button>
-            <button className="icon-btn small" title="Zatvori" onClick={() => client.dismissPoke(p.id)}>
+            <button className="small" onClick={() => client.openPoke(p.from)} title={t('Uzvrati poke')}>{t('Uzvrati')}</button>
+            <button className="icon-btn small" title={t('Zatvori')} onClick={() => client.dismissPoke(p.id)}>
               <Icon name="x" size={16} />
             </button>
           </div>

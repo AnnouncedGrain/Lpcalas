@@ -2,6 +2,7 @@ import { useStore } from '../lib/store';
 import { installUpdate, updateStore } from '../lib/updater';
 import { useVoice } from '../lib/context';
 import { Icon } from './Icon';
+import { t } from '../lib/i18n';
 
 export function UpdateBanner() {
   const u = useStore(updateStore, (s) => s);
@@ -13,22 +14,21 @@ export function UpdateBanner() {
       <Icon name="download" size={18} />
       {u.status === 'available' && (
         <>
-          <span>
-            Nova verzija <b>{u.version}</b> je dostupna.
-            {inVoice && <span className="muted"> Aplikacija će se restartovati (izaći ćeš iz kanala).</span>}
+          <span>{t('Nova verzija {v} je dostupna.', { v: u.version || '' })}
+            {inVoice && <span className="muted"> {t('Aplikacija će se restartovati (izaći ćeš iz kanala).')}</span>}
           </span>
           <span className="spacer" />
-          <button className="primary small" onClick={() => void installUpdate()}>Ažuriraj sada</button>
-          <button className="small" onClick={() => updateStore.set({ dismissed: true })}>Kasnije</button>
+          <button className="primary small" onClick={() => void installUpdate()}>{t('Ažuriraj sada')}</button>
+          <button className="small" onClick={() => updateStore.set({ dismissed: true })}>{t('Kasnije')}</button>
         </>
       )}
       {u.status === 'downloading' && (
         <>
-          <span>Skidam verziju {u.version}... {Math.round(u.progress * 100)}%</span>
+          <span>{t('Skidam verziju {v}...', { v: u.version || '' })} {Math.round(u.progress * 100)}%</span>
           <div className="update-progress"><div style={{ width: `${u.progress * 100}%` }} /></div>
         </>
       )}
-      {u.status === 'installing' && <span>Instaliram i ponovo pokrećem aplikaciju...</span>}
+      {u.status === 'installing' && <span>{t('Instaliram i ponovo pokrećem aplikaciju...')}</span>}
     </div>
   );
 }

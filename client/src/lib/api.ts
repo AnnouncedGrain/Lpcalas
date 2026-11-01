@@ -1,4 +1,5 @@
 import type { Attachment, Bootstrap, Channel, Invite, Message, User } from './types';
+import { t } from './i18n';
 
 export class ApiError extends Error {
   constructor(public status: number, message: string, public code: string) {
@@ -8,7 +9,7 @@ export class ApiError extends Error {
 
 export function normalizeServerUrl(input: string): string {
   let url = input.trim();
-  if (!url) throw new ApiError(0, 'Upiši adresu servera.', 'validation');
+  if (!url) throw new ApiError(0, t('Upiši adresu servera.'), 'validation');
   if (!/^https?:\/\//i.test(url)) url = `http://${url}`;
   url = url.replace(/\/+$/, '');
   try {
@@ -18,7 +19,7 @@ export function normalizeServerUrl(input: string): string {
     if (u.protocol === 'http:' && !u.port && isIpOrLocal) u.port = '8080';
     return u.origin;
   } catch {
-    throw new ApiError(0, 'Neispravna adresa servera.', 'validation');
+    throw new ApiError(0, t('Neispravna adresa servera.'), 'validation');
   }
 }
 
@@ -42,7 +43,7 @@ export class Api {
         body: body !== undefined ? JSON.stringify(body) : undefined,
       });
     } catch {
-      throw new ApiError(0, 'Server nije dostupan. Provjeri adresu i internet vezu.', 'network');
+      throw new ApiError(0, t('Server nije dostupan. Provjeri adresu i internet vezu.'), 'network');
     }
     const text = await res.text();
     let data: any = null;
@@ -52,7 +53,7 @@ export class Api {
       /* nije JSON */
     }
     if (!res.ok) {
-      throw new ApiError(res.status, data?.message || `Greška (${res.status})`, data?.error || 'error');
+      throw new ApiError(res.status, data?.message ? t(data.message) : t('Greška ({code})', { code: res.status }), data?.error || 'error');
     }
     return data as T;
   }
@@ -136,9 +137,9 @@ export class Api {
           /* ignore */
         }
         if (xhr.status >= 200 && xhr.status < 300) resolve(data);
-        else reject(new ApiError(xhr.status, data?.message || `Upload nije uspio (${xhr.status})`, data?.error || 'upload'));
+        else reject(new ApiError(xhr.status, data?.message ? t(data.message) : t('Upload nije uspio ({code})', { code: xhr.status }), data?.error || 'upload'));
       };
-      xhr.onerror = () => reject(new ApiError(0, 'Upload prekinut — provjeri vezu.', 'network'));
+      xhr.onerror = () => reject(new ApiError(0, t('Upload prekinut — provjeri vezu.'), 'network'));
       xhr.send(file);
     });
   }

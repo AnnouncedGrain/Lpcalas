@@ -45,6 +45,7 @@ export interface Settings {
   messageSounds: boolean;
   showStreamStats: boolean;
   streamColumns: 0 | 1 | 2 | 3; // 0 = automatski
+  language: 'bs' | 'en';
 }
 
 const DEFAULTS: Settings = {
@@ -69,6 +70,7 @@ const DEFAULTS: Settings = {
   messageSounds: true,
   showStreamStats: false,
   streamColumns: 0,
+  language: 'bs',
 };
 
 const KEY = 'lpcalas.settings.v1';

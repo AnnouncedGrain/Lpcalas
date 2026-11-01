@@ -6,6 +6,7 @@ import { settings, saveSession, type SavedSession } from './settings';
 import { setHotkeys, flashWindow } from './native';
 import { sounds } from './sounds';
 import { CHANGELOG } from '../changelog';
+import { t } from './i18n';
 
 export interface ActivityEntry {
   userId: number;
@@ -174,7 +175,7 @@ export class Client {
       void this.voice.join(channelId);
     });
     on('voice.kicked', () => {
-      void this.voice.leave(false).then(() => this.voice.store.set({ error: 'Admin te izbacio iz glasovnog kanala.' }));
+      void this.voice.leave(false).then(() => this.voice.store.set({ error: t('Admin te izbacio iz glasovnog kanala.') }));
     });
     on('user', (u: User) => {
       this.store.set((s) => ({ users: { ...s.users, [u.id]: u }, me: s.me.id === u.id ? u : s.me }));

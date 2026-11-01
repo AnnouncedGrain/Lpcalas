@@ -411,3 +411,8 @@ label.inline input { width: 110px; }
 .voice-channel.drop-target { background: rgba(61, 220, 151, 0.08); box-shadow: inset 0 0 0 1px var(--accent-2); }
 .voice-member.draggable { cursor: grab; }
 .voice-member.draggable:active { cursor: grabbing; }
+
+/* izbor jezika na prijavi */
+.lang-switch { display: flex; gap: 4px; align-self: flex-end; margin-top: -8px; }
+.lang-switch button { padding: 3px 10px; font-size: 12px; background: transparent; border: 1px solid var(--line); border-radius: 999px; color: var(--text-3); cursor: pointer; }
+.login-card .lang-switch button.active { color: var(--accent); border-color: var(--accent); background: rgba(61, 220, 151, 0.1); }

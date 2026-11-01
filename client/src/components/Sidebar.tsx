@@ -5,6 +5,7 @@ import type { Channel, VoiceMember } from '../lib/types';
 import { formatDuration } from '../lib/format';
 import { Avatar } from './Avatar';
 import { Icon } from './Icon';
+import { t } from '../lib/i18n';
 
 export function Sidebar({ onOpenSettings }: { onOpenSettings: () => void }) {
   const client = useClient();
@@ -47,7 +48,7 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings: () => void }) {
   const isAdmin = me.role === 'admin';
 
   async function addChannel(type: 'text' | 'voice') {
-    const name = prompt(type === 'text' ? 'Naziv novog tekstualnog kanala:' : 'Naziv novog glasovnog kanala:');
+    const name = prompt(type === 'text' ? t('Naziv novog tekstualnog kanala:') : t('Naziv novog glasovnog kanala:'));
     if (!name?.trim()) return;
     try {
       await client.api.createChannel(name.trim(), type);
@@ -60,14 +61,14 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings: () => void }) {
     <aside className="sidebar">
       <header className="server-header">
         <span className="server-name">{serverName}</span>
-        {connection === 'reconnecting' && <span className="pill warn" title="Veza sa serverom je prekinuta, ponovo se spajam">Spajam...</span>}
+        {connection === 'reconnecting' && <span className="pill warn" title={t('Veza sa serverom je prekinuta, ponovo se spajam')}>{t('Spajam...')}</span>}
       </header>
 
       <div className="channel-scroll">
         <div className="section-title">
-          <span>Tekstualni kanali</span>
+          <span>{t('Tekstualni kanali')}</span>
           {isAdmin && (
-            <button className="icon-btn small" title="Novi tekstualni kanal" onClick={() => addChannel('text')}>
+            <button className="icon-btn small" title={t('Novi tekstualni kanal')} onClick={() => addChannel('text')}>
               <Icon name="plus" size={16} />
             </button>
           )}
@@ -86,9 +87,9 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings: () => void }) {
         ))}
 
         <div className="section-title">
-          <span>Glasovni kanali</span>
+          <span>{t('Glasovni kanali')}</span>
           {isAdmin && (
-            <button className="icon-btn small" title="Novi glasovni kanal" onClick={() => addChannel('voice')}>
+            <button className="icon-btn small" title={t('Novi glasovni kanal')} onClick={() => addChannel('voice')}>
               <Icon name="plus" size={16} />
             </button>
           )}
@@ -117,7 +118,7 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings: () => void }) {
               className={`channel ${myVoiceChannel === c.id ? 'connected' : ''} ${view === 'voice' && myVoiceChannel === c.id ? 'active' : ''}`}
               onClick={() => (myVoiceChannel === c.id ? client.showVoiceView() : client.openVoiceChannel(c.id))}
               onContextMenu={(e) => isAdmin && channelMenu(e, c)}
-              title={myVoiceChannel === c.id ? 'Prikaži kanal' : 'Uđi u kanal'}
+              title={myVoiceChannel === c.id ? t('Prikaži kanal') : t('Uđi u kanal')}
             >
               <Icon name="volume" size={18} className="channel-icon" />
               <span className="channel-name">{c.name}</span>
@@ -143,10 +144,10 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings: () => void }) {
 
   function channelMenu(e: MouseEvent, c: Channel) {
     e.preventDefault();
-    const action = prompt(`Kanal "${c.name}"\nUpiši novi naziv, ili OBRISI za brisanje kanala:`, c.name);
+    const action = prompt(t('Kanal "{name}"\nUpiši novi naziv, ili OBRISI za brisanje kanala:', { name: c.name }), c.name);
     if (!action || action === c.name) return;
-    if (action.trim().toUpperCase() === 'OBRISI') {
-      if (confirm(`Sigurno obrisati kanal "${c.name}" i sve poruke u njemu?`)) {
+    if (action.trim().toUpperCase() === 'OBRISI' || action.trim().toUpperCase() === 'DELETE') {
+      if (confirm(t('Sigurno obrisati kanal "{name}" i sve poruke u njemu?', { name: c.name }))) {
         client.api.deleteChannel(c.id).catch((err) => alert(err.message));
       }
     } else {
@@ -182,12 +183,12 @@ function VoiceMemberRow({ member, menuOpen: menu, onMenu }: { member: VoiceMembe
           e.preventDefault();
           onMenu(isMe ? false : !menu);
         }}
-        title={`${since ? `Online ${formatDuration(Date.now() - since)}` : ''}${isMe ? '' : '\nDesni klik: jačina, poke'}${canDrag ? '\nPrevuci u drugi kanal da premjestiš' : ''}`}
+        title={`${since ? `${t('Online')} ${formatDuration(Date.now() - since)}` : ''}${isMe ? '' : '\n' + t('Desni klik: jačina, poke')}${canDrag ? '\n' + t('Prevuci u drugi kanal da premjestiš') : ''}`}
       >
         <Avatar user={user} size={22} baseUrl={client.api.baseUrl} speaking={speaking} />
         <span className="voice-member-name">{user?.displayName || '...'}</span>
         <span className="voice-flags">
-          {member.streaming && <span className="live-tag">UŽIVO</span>}
+          {member.streaming && <span className="live-tag">{t('UŽIVO')}</span>}
           {member.muted && !member.deafened && <Icon name="micOff" size={14} />}
           {member.deafened && <Icon name="headphonesOff" size={14} />}
         </span>
@@ -195,7 +196,7 @@ function VoiceMemberRow({ member, menuOpen: menu, onMenu }: { member: VoiceMembe
       {menu && (
         <div className="member-menu" onMouseLeave={() => onMenu(false)} onClick={(e) => e.stopPropagation()}>
           <label>
-            Jačina: {Math.round(volume * 100)}%
+            {t('Jačina: {v}%', { v: Math.round(volume * 100) })}
             <input
               type="range"
               min={0}
@@ -206,16 +207,11 @@ function VoiceMemberRow({ member, menuOpen: menu, onMenu }: { member: VoiceMembe
             />
           </label>
           <button className="small" onClick={() => { onMenu(false); client.openPoke(member.userId); }}>
-            <Icon name="bell" size={14} /> Poke
-          </button>
+            <Icon name="bell" size={14} /> {t('Poke')}</button>
           {me.role === 'admin' && (
-            <button className="danger small" onClick={() => client.api.voiceKick(member.userId).catch((err) => alert(err.message))}>
-              Izbaci iz kanala
-            </button>
+            <button className="danger small" onClick={() => client.api.voiceKick(member.userId).catch((err) => alert(err.message))}>{t('Izbaci iz kanala')}</button>
           )}
-          <button className="small" onClick={() => settings.set({ userVolumes: { ...s.userVolumes, [String(member.userId)]: 1 } })}>
-            Vrati na 100%
-          </button>
+          <button className="small" onClick={() => settings.set({ userVolumes: { ...s.userVolumes, [String(member.userId)]: 1 } })}>{t('Vrati na 100%')}</button>
         </div>
       )}
     </div>
@@ -235,7 +231,7 @@ function VoiceStatusPanel() {
     return (
       <div className="voice-status error-panel">
         <span>{error}</span>
-        <button className="icon-btn small" onClick={() => client.voice.clearError()} title="Zatvori">
+        <button className="icon-btn small" onClick={() => client.voice.clearError()} title={t('Zatvori')}>
           <Icon name="x" size={16} />
         </button>
       </div>
@@ -244,7 +240,7 @@ function VoiceStatusPanel() {
   if (channelId === null) return null;
 
   const label =
-    status === 'connecting' ? 'Spajam se...' : status === 'reconnecting' ? 'Ponovo se spajam...' : 'Glas spojen';
+    status === 'connecting' ? t('Spajam se...') : status === 'reconnecting' ? t('Ponovo se spajam...') : t('Glas spojen');
   return (
     <div className="voice-status">
       <div className="voice-status-info" onClick={() => client.showVoiceView()}>
@@ -256,13 +252,13 @@ function VoiceStatusPanel() {
       <div className="voice-status-actions">
         <button
           className={`icon-btn ${streaming ? 'on' : ''}`}
-          title={streaming ? 'Zaustavi stream' : 'Streamaj ekran ili aplikaciju'}
+          title={streaming ? t('Zaustavi stream') : t('Streamaj ekran ili aplikaciju')}
           disabled={status !== 'connected'}
           onClick={() => (streaming ? client.voice.stopScreenShare() : client.voice.startScreenShare())}
         >
           <Icon name={streaming ? 'screenOff' : 'screen'} size={18} />
         </button>
-        <button className="icon-btn danger" title="Izađi iz kanala" onClick={() => client.voice.leave()}>
+        <button className="icon-btn danger" title={t('Izađi iz kanala')} onClick={() => client.voice.leave()}>
           <Icon name="phoneOff" size={18} />
         </button>
       </div>
@@ -284,15 +280,15 @@ function UserPanel({ onOpenSettings }: { onOpenSettings: () => void }) {
       <Avatar user={me} size={32} baseUrl={client.api.baseUrl} speaking={transmitting} />
       <div className="user-panel-name">
         <span>{me.displayName}</span>
-        <span className="muted small">{s.voiceMode === 'ptt' ? `PTT: ${s.hotkeys.ptt?.name || 'nije postavljeno'}` : '@' + me.username}</span>
+        <span className="muted small">{s.voiceMode === 'ptt' ? `PTT: ${s.hotkeys.ptt?.name || t('nije postavljeno')}` : '@' + me.username}</span>
       </div>
-      <button className={`icon-btn ${muted ? 'off' : ''}`} title={muted ? 'Uključi mikrofon' : 'Isključi mikrofon'} onClick={() => client.voice.toggleMute()}>
+      <button className={`icon-btn ${muted ? 'off' : ''}`} title={muted ? t('Uključi mikrofon') : t('Isključi mikrofon')} onClick={() => client.voice.toggleMute()}>
         <Icon name={muted ? 'micOff' : 'mic'} size={18} />
       </button>
-      <button className={`icon-btn ${deafened ? 'off' : ''}`} title={deafened ? 'Uključi zvuk' : 'Isključi zvuk (deafen)'} onClick={() => client.voice.toggleDeafen()}>
+      <button className={`icon-btn ${deafened ? 'off' : ''}`} title={deafened ? t('Uključi zvuk') : t('Isključi zvuk (deafen)')} onClick={() => client.voice.toggleDeafen()}>
         <Icon name={deafened ? 'headphonesOff' : 'headphones'} size={18} />
       </button>
-      <button className="icon-btn" title="Postavke" onClick={onOpenSettings}>
+      <button className="icon-btn" title={t('Postavke')} onClick={onOpenSettings}>
         <Icon name="settings" size={18} />
       </button>
     </div>

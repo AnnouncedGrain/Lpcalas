@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Api, ApiError, normalizeServerUrl } from '../lib/api';
-import { loadSession, saveSession } from '../lib/settings';
+import { loadSession, saveSession, settings } from '../lib/settings';
+import { LANGUAGES, lang, t } from '../lib/i18n';
 
 export function Login({ onLoggedIn }: { onLoggedIn: (api: Api) => void }) {
   const saved = loadSession();
@@ -47,7 +48,7 @@ export function Login({ onLoggedIn }: { onLoggedIn: (api: Api) => void }) {
       saveSession({ serverUrl: base, token: res.token, username: res.user.username });
       onLoggedIn(api);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Nešto nije u redu.');
+      setError(err instanceof ApiError ? err.message : t('Nešto nije u redu.'));
     } finally {
       setBusy(false);
     }
@@ -60,46 +61,41 @@ export function Login({ onLoggedIn }: { onLoggedIn: (api: Api) => void }) {
           <div className="brand-mark">LP</div>
           <div>
             <h1>Lpcalas</h1>
-            <p className="muted">{info ? `Server: ${info.name}` : 'Glas, stream i chat za ekipu'}</p>
+            <p className="muted">{info ? `${t('Server')}: ${info.name}` : t('Glas, stream i chat za ekipu')}</p>
           </div>
         </div>
 
-        <label>
-          Adresa servera
-          <input
+        <div className="lang-switch" role="group" aria-label={t('Jezik')}>
+          {LANGUAGES.map((l) => (
+            <button type="button" key={l.id} className={lang() === l.id ? 'active' : ''} onClick={() => settings.set({ language: l.id })}>{l.label}</button>
+          ))}
+        </div>
+
+        <label>{t('Adresa servera')}<input
             value={serverUrl}
             onChange={(e) => setServerUrl(e.target.value)}
-            placeholder="npr. 85.12.34.56:8080"
+            placeholder={t('npr. 85.12.34.56:8080')}
             autoFocus={!saved?.serverUrl}
             spellCheck={false}
           />
         </label>
         {info?.needsFirstUser && (
-          <p className="hint ok">Server je nov. Prvi nalog postaje admin (pozivni kod je ispisala skripta).</p>
+          <p className="hint ok">{t('Server je nov. Prvi nalog postaje admin (pozivni kod je ispisala skripta).')}</p>
         )}
 
         <div className="tabs">
-          <button type="button" className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')}>
-            Prijava
-          </button>
-          <button type="button" className={mode === 'register' ? 'active' : ''} onClick={() => setMode('register')}>
-            Novi nalog
-          </button>
+          <button type="button" className={mode === 'login' ? 'active' : ''} onClick={() => setMode('login')}>{t('Prijava')}</button>
+          <button type="button" className={mode === 'register' ? 'active' : ''} onClick={() => setMode('register')}>{t('Novi nalog')}</button>
         </div>
 
-        <label>
-          Korisničko ime
-          <input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" spellCheck={false} autoFocus={!!saved?.serverUrl} />
+        <label>{t('Korisničko ime')}<input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" spellCheck={false} autoFocus={!!saved?.serverUrl} />
         </label>
         {mode === 'register' && (
-          <label>
-            Ime za prikaz <span className="muted">(opcionalno)</span>
+          <label>{t('Ime za prikaz')} <span className="muted">{t('(opcionalno)')}</span>
             <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={32} />
           </label>
         )}
-        <label>
-          Lozinka
-          <input
+        <label>{t('Lozinka')}<input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -107,16 +103,14 @@ export function Login({ onLoggedIn }: { onLoggedIn: (api: Api) => void }) {
           />
         </label>
         {mode === 'register' && (
-          <label>
-            Pozivni kod
-            <input value={invite} onChange={(e) => setInvite(e.target.value.toUpperCase())} placeholder="XXXXX-XXXXX" spellCheck={false} />
+          <label>{t('Pozivni kod')}<input value={invite} onChange={(e) => setInvite(e.target.value.toUpperCase())} placeholder={t('XXXXX-XXXXX')} spellCheck={false} />
           </label>
         )}
 
         {error && <p className="error">{error}</p>}
 
         <button className="primary big" disabled={busy || !serverUrl || !username || !password}>
-          {busy ? 'Spajam...' : mode === 'login' ? 'Prijavi se' : 'Napravi nalog'}
+          {busy ? t('Spajam...') : mode === 'login' ? t('Prijavi se') : t('Napravi nalog')}
         </button>
       </form>
     </div>

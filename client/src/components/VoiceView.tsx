@@ -7,6 +7,7 @@ import { gpuName } from '../lib/hw';
 import type { StreamInfo } from '../lib/voice';
 import { Avatar } from './Avatar';
 import { Icon } from './Icon';
+import { t } from '../lib/i18n';
 
 // Preko cijelog ekrana: jedno mjesto koje pali/gasi i Windows prozor, da ne ostane "zaglavljen".
 async function setWindowFullscreen(on: boolean) {
@@ -73,8 +74,8 @@ export function VoiceView() {
     return (
       <section className="voice-view empty">
         <Icon name="volume" size={48} />
-        <h2>Nisi u glasovnom kanalu</h2>
-        <p className="muted">Klikni na glasovni kanal lijevo da uđeš.</p>
+        <h2>{t('Nisi u glasovnom kanalu')}</h2>
+        <p className="muted">{t('Klikni na glasovni kanal lijevo da uđeš.')}</p>
       </section>
     );
   }
@@ -95,14 +96,14 @@ export function VoiceView() {
         <Icon name="volume" size={22} className="muted" />
         <h2>{channel?.name}</h2>
         {streaming && (
-          <span className="viewer-pill" title={myViewers.length ? `Gledaju: ${names(myViewers)}` : 'Niko još ne gleda'}>
+          <span className="viewer-pill" title={myViewers.length ? `${t('Gledaju')}: ${names(myViewers)}` : t('Niko još ne gleda')}>
             <Icon name="eye" size={15} /> {myViewers.length}
-            <span className="viewer-names">{myViewers.length ? names(myViewers) : 'niko ne gleda'}</span>
+            <span className="viewer-names">{myViewers.length ? names(myViewers) : t('niko ne gleda')}</span>
           </span>
         )}
         <span className="spacer" />
         {streams.length > 1 && (
-          <div className="layout-switch" title="Raspored streamova">
+          <div className="layout-switch" title={t('Raspored streamova')}>
             <Icon name="grid" size={16} />
             {([0, 1, 2, 3] as const).map((n) => (
               <button key={n} className={s.streamColumns === n ? 'active' : ''} onClick={() => settings.set({ streamColumns: n })}>
@@ -117,7 +118,7 @@ export function VoiceView() {
               className="compact-select"
               value={s.streamPreset}
               onChange={(e) => settings.set({ streamPreset: e.target.value })}
-              title="Kvalitet streama"
+              title={t('Kvalitet streama')}
               disabled={streaming}
             >
               <option value="720p30">720p30</option>
@@ -131,13 +132,13 @@ export function VoiceView() {
               onClick={() => (streaming ? client.voice.stopScreenShare() : client.voice.startScreenShare())}
             >
               <Icon name={streaming ? 'screenOff' : 'screen'} size={18} />
-              {streaming ? 'Zaustavi stream' : `Streamaj (${preset.height}p${preset.fps})`}
+              {streaming ? t('Zaustavi stream') : t('Streamaj ({q})', { q: `${preset.height}p${preset.fps}` })}
             </button>
           </>
         )}
       </header>
 
-      {status === 'connecting' && <div className="voice-connecting">Spajam se na glasovni server...</div>}
+      {status === 'connecting' && <div className="voice-connecting">{t('Spajam se na glasovni server...')}</div>}
 
       {streams.length > 0 && (
         <div ref={gridRef} className="stream-grid" style={{ gridTemplateColumns: `repeat(${cols}, ${Math.floor(tileW)}px)`, gap: GAP, padding: PAD }}>
@@ -170,7 +171,7 @@ export function VoiceView() {
               <Avatar user={u} size={streams.length ? 40 : 72} baseUrl={client.api.baseUrl} speaking={speaking.includes(m.userId)} />
               <div className="participant-name">
                 {u?.displayName || '...'}
-                {m.streaming && <span className="live-tag">UŽIVO</span>}
+                {m.streaming && <span className="live-tag">{t('UŽIVO')}</span>}
                 {m.muted && !m.deafened && <Icon name="micOff" size={14} />}
                 {m.deafened && <Icon name="headphonesOff" size={14} />}
               </div>
@@ -251,31 +252,30 @@ function StreamTile({
         <video ref={videoRef} autoPlay playsInline muted onDoubleClick={onToggleFullscreen} />
       ) : (
         <div className="stream-placeholder">
-          <span className="live-tag">UŽIVO</span>
-          <p>{name} streama</p>
+          <span className="live-tag">{t('UŽIVO')}</span>
+          <p>{t('{name} streama', { name })}</p>
           <button className="primary" onClick={onWatch}>
-            <Icon name="eye" size={18} /> Gledaj stream
-          </button>
+            <Icon name="eye" size={18} /> {t('Gledaj stream')}</button>
         </div>
       )}
 
       {watching && !info.local && (
-        <button className="stream-close" title="Prestani gledati" onClick={onStop}>
+        <button className="stream-close" title={t('Prestani gledati')} onClick={onStop}>
           <Icon name="x" size={18} />
         </button>
       )}
 
       <div className="stream-bar">
-        <span className="live-tag">UŽIVO</span>
-        <span className="stream-name">{info.local ? `${name} (ti)` : name}</span>
-        <span className="stream-viewers" title={viewerIds.length ? `Gledaju: ${viewerNames}` : 'Niko ne gleda'}>
+        <span className="live-tag">{t('UŽIVO')}</span>
+        <span className="stream-name">{info.local ? `${name} (${t('ti')})` : name}</span>
+        <span className="stream-viewers" title={viewerIds.length ? `${t('Gledaju')}: ${viewerNames}` : t('Niko ne gleda')}>
           <Icon name="eye" size={14} /> {viewerIds.length}
         </span>
         <span className="spacer" />
         {watching && !info.local && (
           <button
             className={`icon-btn small ${streamMuted ? 'off' : ''}`}
-            title={streamMuted ? 'Uključi zvuk streama' : 'Isključi zvuk streama'}
+            title={streamMuted ? t('Uključi zvuk streama') : t('Isključi zvuk streama')}
             onClick={() => setStreamMuted((m) => !m)}
           >
             <Icon name={streamMuted ? 'volumeOff' : 'volume'} size={16} />
@@ -290,16 +290,16 @@ function StreamTile({
             step={0.05}
             value={streamVolume}
             onChange={(e) => setStreamVolume(Number(e.target.value))}
-            title={`Zvuk streama: ${Math.round(streamVolume * 100)}%`}
+            title={t('Zvuk streama: {v}%', { v: Math.round(streamVolume * 100) })}
           />
         )}
         {watching && (
-          <button className="icon-btn small" title="Statistika" onClick={() => setShowStats((x) => !x)}>
+          <button className="icon-btn small" title={t('Statistika')} onClick={() => setShowStats((x) => !x)}>
             <Icon name="signal" size={16} />
           </button>
         )}
         {watching && (
-          <button className="icon-btn small" title={fullscreen ? 'Izađi iz punog ekrana (Esc)' : 'Preko cijelog ekrana (dupli klik)'} onClick={onToggleFullscreen}>
+          <button className="icon-btn small" title={fullscreen ? t('Izađi iz punog ekrana (Esc)') : t('Preko cijelog ekrana (dupli klik)')} onClick={onToggleFullscreen}>
             <Icon name={fullscreen ? 'minimize' : 'maximize'} size={16} />
           </button>
         )}
@@ -370,20 +370,20 @@ function StreamStats({ info }: { info: StreamInfo }) {
     return () => clearInterval(t);
   }, [client, info.identity, info.local]);
 
-  if (!stats) return <div className="stream-stats">Učitavam statistiku...</div>;
+  if (!stats) return <div className="stream-stats">{t('Učitavam statistiku...')}</div>;
   const text = [
     `${stats.resolution} @ ${stats.fps} fps`,
     `${(stats.bitrateKbps / 1000).toFixed(1)} Mbps · ${stats.codec}`,
-    `${info.local ? 'Enkoder' : 'Dekoder'}: ${stats.impl}${stats.hardware === null ? '' : stats.hardware ? ' (hardverski ✓)' : ' (softverski ✗)'}`,
-    stats.encodeMs !== undefined ? `Enkodiranje: ${stats.encodeMs} ms/frame` : null,
-    stats.limitation && stats.limitation !== 'none' ? `Ograničenje: ${stats.limitation === 'cpu' ? 'procesor' : stats.limitation === 'bandwidth' ? 'internet' : stats.limitation}` : null,
-    stats.dropped ? `Izgubljeno frameova: ${stats.dropped}` : null,
+    `${info.local ? t('Enkoder') : t('Dekoder')}: ${stats.impl}${stats.hardware === null ? '' : stats.hardware ? ` (${t('hardverski')} ✓)` : ` (${t('softverski')} ✗)`}`,
+    stats.encodeMs !== undefined ? t('Enkodiranje: {v} ms/frame', { v: stats.encodeMs }) : null,
+    stats.limitation && stats.limitation !== 'none' ? t('Ograničenje: {v}', { v: stats.limitation === 'cpu' ? t('procesor') : stats.limitation === 'bandwidth' ? t('internet') : stats.limitation }) : null,
+    stats.dropped ? t('Izgubljeno frameova: {v}', { v: stats.dropped }) : null,
     info.local
       ? audioMode === 'native'
-        ? 'Zvuk: Windows, bez Lpcalasa ✓'
+        ? t('Zvuk: Windows, bez Lpcalasa ✓')
         : audioMode === 'browser'
-          ? `Zvuk: stari način ✗ (${audioError || 'nepoznat razlog'})`
-          : 'Zvuk: isključen'
+          ? t('Zvuk: stari način ✗ ({err})', { err: audioError || t('nepoznat razlog') })
+          : t('Zvuk: isključen')
       : null,
   ].filter(Boolean);
   return (
@@ -393,10 +393,8 @@ function StreamStats({ info }: { info: StreamInfo }) {
       ))}
       <button
         className="link small"
-        onClick={() => void navigator.clipboard.writeText(`Lpcalas stream (${info.local ? 'slanje' : 'prijem'}) · ${gpuName()}\n` + text.join('\n'))}
-      >
-        Kopiraj dijagnostiku
-      </button>
+        onClick={() => void navigator.clipboard.writeText(`Lpcalas stream (${info.local ? 'send' : 'receive'}) · ${gpuName()}\n` + text.join('\n'))}
+      >{t('Kopiraj dijagnostiku')}</button>
     </div>
   );
 }
