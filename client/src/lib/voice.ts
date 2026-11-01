@@ -38,6 +38,8 @@ export interface VoiceState {
   streams: StreamInfo[];
   quality: 'excellent' | 'good' | 'poor' | 'lost' | 'unknown';
   micLevelDb: number;
+  watching: string[]; // identity streamova koje gledam
+  viewers: Record<string, number[]>; // identity streamera -> userId gledalaca
 }
 
 const INITIAL: VoiceState = {
@@ -52,6 +54,8 @@ const INITIAL: VoiceState = {
   streams: [],
   quality: 'unknown',
   micLevelDb: -100,
+  watching: [],
+  viewers: {},
 };
 
 // AudioWorklet radi na audio niti, pa ga Windows/Chromium ne usporava kad je igra u prvom planu.
@@ -108,7 +112,6 @@ export class VoiceManager {
       const { token, url } = await this.api.voiceToken(channelId);
       setIceOverride(await iceTargetsFor(this.api.baseUrl));
       if (seq !== this.joinSeq) return;
-      if (seq !== this.joinSeq) return;
       const room = new Room({
         adaptiveStream: true,
         dynacast: true,
@@ -124,7 +127,8 @@ export class VoiceManager {
       });
       this.room = room;
       this.bindRoomEvents(room);
-      await room.connect(url, token, { autoSubscribe: true });
+      await room.connect(url, token, { autoSubscribe: false });
+      this.subscribeDefaults(room);
       if (seq !== this.joinSeq) {
         await room.disconnect();
         return;
@@ -166,7 +170,7 @@ export class VoiceManager {
     const { muted, deafened } = this.store.get();
     this.store.set({ ...INITIAL, muted, deafened });
     if (wasIn) {
-      if (playSound) sounds.leave();
+      if (playSound) sounds.selfLeave();
       void this.api.voiceState({ channelId: null }).catch(() => {});
     }
   }
@@ -202,7 +206,7 @@ export class VoiceManager {
   toggleDeafen() {
     const { deafened } = this.store.get();
     this.store.set({ deafened: !deafened, muted: !deafened ? true : false });
-    this.store.get().deafened ? sounds.mute() : sounds.unmute();
+    this.store.get().deafened ? sounds.deafen() : sounds.undeafen();
     this.applyGate();
     this.applyVolumes();
     void this.reportState();
@@ -272,12 +276,54 @@ export class VoiceManager {
     if (!room) return;
     await room.localParticipant.setScreenShareEnabled(false).catch(() => {});
     this.store.set({ streaming: false });
+    sounds.streamStop();
     this.refreshStreams();
     void this.reportState();
   }
 
   clearError() {
     this.store.set({ error: null });
+  }
+
+  // Gledanje streama: tek tada se video (i zvuk streama) skida sa servera.
+  setWatching(identity: string, watch: boolean) {
+    const room = this.room;
+    if (!room) return;
+    const cur = this.store.get().watching;
+    const next = watch ? [...new Set([...cur, identity])] : cur.filter((x) => x !== identity);
+    this.store.set({ watching: next });
+    const p = room.remoteParticipants.get(identity);
+    if (p) {
+      p.getTrackPublication(Track.Source.ScreenShare)?.setSubscribed(watch);
+      p.getTrackPublication(Track.Source.ScreenShareAudio)?.setSubscribed(watch);
+    }
+    void room.localParticipant.setAttributes({ watching: next.join(',') }).catch(() => {});
+  }
+
+  private subscribeDefaults(room: Room) {
+    for (const p of room.remoteParticipants.values()) {
+      for (const pub of p.trackPublications.values()) this.autoSubscribe(pub);
+    }
+    this.recomputeViewers();
+  }
+
+  private autoSubscribe(pub: RemoteTrackPublication) {
+    if (pub.source === Track.Source.Microphone) pub.setSubscribed(true);
+  }
+
+  private recomputeViewers() {
+    const room = this.room;
+    if (!room) return;
+    const viewers: Record<string, number[]> = {};
+    for (const p of room.remoteParticipants.values()) {
+      const list = (p.attributes?.watching || '').split(',').filter(Boolean);
+      for (const streamer of list) (viewers[streamer] ||= []).push(Number(p.identity));
+    }
+    const me = room.localParticipant.identity;
+    const before = this.store.get().viewers[me]?.length || 0;
+    const after = viewers[me]?.length || 0;
+    if (this.store.get().streaming && after > before) sounds.viewer();
+    this.store.set({ viewers });
   }
 
   // ---------- interno ----------
@@ -401,10 +447,15 @@ export class VoiceManager {
         sounds.join();
         this.applyVolumesFor(p);
       })
-      .on(RoomEvent.ParticipantDisconnected, () => {
+      .on(RoomEvent.ParticipantDisconnected, (p: RemoteParticipant) => {
         sounds.leave();
+        if (this.store.get().watching.includes(p.identity)) {
+          this.store.set({ watching: this.store.get().watching.filter((x) => x !== p.identity) });
+        }
         this.refreshStreams();
+        this.recomputeViewers();
       })
+      .on(RoomEvent.ParticipantAttributesChanged, () => this.recomputeViewers())
       .on(RoomEvent.TrackSubscribed, (track: RemoteTrack, pub: RemoteTrackPublication, p: RemoteParticipant) => {
         // Mikrofon drugih se pušta odmah; zvuk streama tek kad ga gledaš (StreamTile).
         if (track.kind === Track.Kind.Audio && pub.source === Track.Source.Microphone) {
@@ -415,8 +466,19 @@ export class VoiceManager {
         this.applyVolumesFor(p);
         this.refreshStreams();
       })
-      .on(RoomEvent.TrackPublished, () => this.refreshStreams())
-      .on(RoomEvent.TrackUnpublished, () => this.refreshStreams())
+      .on(RoomEvent.TrackPublished, (pub: RemoteTrackPublication, p: RemoteParticipant) => {
+        this.autoSubscribe(pub);
+        if (pub.source === Track.Source.ScreenShare) {
+          sounds.streamStart();
+          if (this.store.get().watching.includes(p.identity)) pub.setSubscribed(true);
+        }
+        if (pub.source === Track.Source.ScreenShareAudio && this.store.get().watching.includes(p.identity)) pub.setSubscribed(true);
+        this.refreshStreams();
+      })
+      .on(RoomEvent.TrackUnpublished, (pub: RemoteTrackPublication) => {
+        if (pub.source === Track.Source.ScreenShare) sounds.streamStop();
+        this.refreshStreams();
+      })
       .on(RoomEvent.TrackUnsubscribed, (track: RemoteTrack) => {
         track.detach().forEach((el) => el.remove());
         this.refreshStreams();

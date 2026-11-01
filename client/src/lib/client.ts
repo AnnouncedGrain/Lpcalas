@@ -210,9 +210,9 @@ export class Client {
     }
     if (m.userId !== s.me.id) {
       const visible = s.view === 'text' && s.activeTextChannelId === m.channelId && document.hasFocus();
+      if (settings.get().messageSounds) sounds.message();
       if (!visible) {
         this.store.set((st) => ({ unread: { ...st.unread, [m.channelId]: (st.unread[m.channelId] || 0) + 1 } }));
-        sounds.message();
         void flashWindow();
       }
     }

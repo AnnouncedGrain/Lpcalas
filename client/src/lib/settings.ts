@@ -40,7 +40,11 @@ export interface Settings {
   streamBitrateOverride: number | null; // bps
   streamAudio: boolean;
   sounds: boolean;
+  soundVolume: number; // 0..1
+  voiceAnnouncements: boolean;
+  messageSounds: boolean;
   showStreamStats: boolean;
+  streamColumns: 0 | 1 | 2 | 3; // 0 = automatski
 }
 
 const DEFAULTS: Settings = {
@@ -60,7 +64,11 @@ const DEFAULTS: Settings = {
   streamBitrateOverride: null,
   streamAudio: true,
   sounds: true,
+  soundVolume: 0.8,
+  voiceAnnouncements: true,
+  messageSounds: true,
   showStreamStats: false,
+  streamColumns: 0,
 };
 
 const KEY = 'lpcalas.settings.v1';

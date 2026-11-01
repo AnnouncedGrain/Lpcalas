@@ -5,6 +5,7 @@ import { settings, STREAM_PRESETS, presetById, type HotkeyBinding, type StreamCo
 import type { Invite, User } from '../lib/types';
 import { Avatar } from './Avatar';
 import { checkEncoders, gpuName, type CodecSupport } from '../lib/hw';
+import { sounds } from '../lib/sounds';
 import { Icon } from './Icon';
 
 type Tab = 'account' | 'voice' | 'stream' | 'keys' | 'app' | 'admin';
@@ -461,10 +462,32 @@ function AppTab() {
     <>
       <h2>Aplikacija</h2>
       <Section title="Zvukovi">
-        <Toggle checked={s.sounds} onChange={(v) => settings.set({ sounds: v })} label="Zvukovi (ulazak, izlazak, poruke, mute)" />
+        <Toggle checked={s.sounds} onChange={(v) => settings.set({ sounds: v })} label="Zvukovi uključeni" />
+        <label>
+          Jačina zvukova: {Math.round(s.soundVolume * 100)}%
+          <input type="range" min={0.1} max={1} step={0.05} value={s.soundVolume} onChange={(e) => settings.set({ soundVolume: Number(e.target.value) })} />
+        </label>
+        <Toggle checked={s.messageSounds} onChange={(v) => settings.set({ messageSounds: v })} label="Zvuk za nove poruke" />
+        <Toggle
+          checked={s.voiceAnnouncements}
+          onChange={(v) => settings.set({ voiceAnnouncements: v })}
+          label="Glasovna najava"
+          hint='Kaže "Mikrofon isključen / uključen" i "Zvuk isključen / uključen".'
+        />
+        <div className="sound-tests">
+          <span className="muted small">Poslušaj:</span>
+          <button className="small" onClick={() => sounds.join()}>Neko ušao</button>
+          <button className="small" onClick={() => sounds.leave()}>Neko izašao</button>
+          <button className="small" onClick={() => sounds.mute()}>Mute</button>
+          <button className="small" onClick={() => sounds.unmute()}>Unmute</button>
+          <button className="small" onClick={() => sounds.deafen()}>Deafen</button>
+          <button className="small" onClick={() => sounds.message()}>Poruka</button>
+          <button className="small" onClick={() => sounds.streamStart()}>Stream počeo</button>
+          <button className="small" onClick={() => sounds.streamStop()}>Stream gotov</button>
+        </div>
       </Section>
       <Section title="O aplikaciji">
-        <p>Lpcalas v0.1.3 · {isTauri ? 'Windows aplikacija' : 'web verzija'}</p>
+        <p>Lpcalas v0.1.4 · {isTauri ? 'Windows aplikacija' : 'web verzija'}</p>
         <p className="muted">Server: {server} ({client.api.baseUrl})</p>
       </Section>
     </>

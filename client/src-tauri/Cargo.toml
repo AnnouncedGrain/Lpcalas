@@ -1,6 +1,6 @@
 [package]
 name = "lpcalas"
-version = "0.1.3"
+version = "0.1.4"
 description = "Lpcalas - glas, stream i chat"
 edition = "2021"
 

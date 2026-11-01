@@ -427,6 +427,9 @@ function Lightbox({ attachment, baseUrl, onClose }: { attachment: Attachment; ba
   const src = baseUrl + attachment.url;
   return (
     <div className="lightbox" onClick={onClose}>
+      <button className="lightbox-close" title="Zatvori (Esc)" onClick={onClose}>
+        <Icon name="x" size={22} />
+      </button>
       <img src={src} alt={attachment.filename} onClick={(e) => e.stopPropagation()} />
       <div className="lightbox-bar" onClick={(e) => e.stopPropagation()}>
         <span>{attachment.filename}</span>
