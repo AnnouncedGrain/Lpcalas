@@ -57,4 +57,9 @@ export const CHANGELOG: Array<{ version: string; notes: string }> = [
 - Izbor jezika: bosanski ili engleski (Postavke → Aplikacija → Jezik, ili na prijavi)
 - Language option: Bosnian or English (Settings → App → Language, or on the login screen)`,
   },
+  {
+    version: '0.2.4',
+    notes: `- Pop-out streama: dugme na streamu otvara ga u zasebnom prozoru koji možeš pomjerati, povećavati i držati iznad drugih prozora
+- Zatvaranje tog prozora vraća stream u aplikaciju`,
+  },
 ];

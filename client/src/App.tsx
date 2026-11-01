@@ -11,6 +11,7 @@ import { MemberList } from './components/MemberList';
 import { SettingsModal } from './components/SettingsModal';
 import { PokeAlerts, PokeComposer } from './components/Poke';
 import { UpdateBanner } from './components/UpdateBanner';
+import { StreamPopouts } from './components/StreamPopouts';
 import { startAutoUpdateChecks } from './lib/updater';
 import { t } from './lib/i18n';
 
@@ -101,6 +102,7 @@ function Shell() {
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
       <PokeComposer />
       <PokeAlerts />
+      <StreamPopouts />
     </div>
   );
 }

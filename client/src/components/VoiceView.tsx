@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { Track, type LocalVideoTrack, type RemoteVideoTrack } from 'livekit-client';
 import { useApp, useClient, useSettings, useVoice } from '../lib/context';
 import { isTauri } from '../lib/native';
@@ -33,6 +33,7 @@ export function VoiceView() {
   const streaming = useVoice((v) => v.streaming);
   const speaking = useVoice((v) => v.speaking);
   const watching = useVoice((v) => v.watching);
+  const popouts = useVoice((v) => v.popouts);
   const viewers = useVoice((v) => v.viewers);
   const channel = useApp((s) => s.channels.find((c) => c.id === channelId));
   const members = useApp((s) => (channelId !== null ? s.voice[channelId] || [] : []));
@@ -151,6 +152,7 @@ export function VoiceView() {
               viewerIds={viewers[x.identity] || []}
               viewerNames={names(viewers[x.identity] || [])}
               fullscreen={fullscreen === x.identity}
+              popped={popouts.includes(x.identity)}
               onWatch={() => client.voice.setWatching(x.identity, true)}
               onStop={() => {
                 if (fullscreen === x.identity) setFullscreen(null);
@@ -183,43 +185,17 @@ export function VoiceView() {
   );
 }
 
-function StreamTile({
-  info,
-  name,
-  watching,
-  viewerIds,
-  viewerNames,
-  fullscreen,
-  onWatch,
-  onStop,
-  onToggleFullscreen,
-  size,
-}: {
-  info: StreamInfo;
-  name: string;
-  watching: boolean;
-  viewerIds: number[];
-  viewerNames: string;
-  fullscreen: boolean;
-  onWatch: () => void;
-  onStop: () => void;
-  onToggleFullscreen: () => void;
-  size: { width: number; height: number };
-}) {
+// Prikaz streama u <video> (u aplikaciji ili u pop-out prozoru) + jačina zvuka streama.
+export function useStreamMedia(info: StreamInfo, active: boolean, videoRef: RefObject<HTMLVideoElement>, streamVolume: number, streamMuted: boolean) {
   const client = useClient();
   const streams = useVoice((v) => v.streams);
-  const s = useSettings();
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [showStats, setShowStats] = useState(s.showStreamStats);
-  const [streamVolume, setStreamVolume] = useState(1);
-  const [streamMuted, setStreamMuted] = useState(false);
   const [tick, setTick] = useState(0);
 
   // Spoji video (i zvuk streama) dok gledaš. Track stiže tek nakon pretplate, pa slušamo i događaje.
   useEffect(() => {
     const room = client.voice.getRoom();
     const el = videoRef.current;
-    if (!room || !el || !watching) return;
+    if (!room || !el || !active) return;
     const p = info.local ? room.localParticipant : room.getParticipantByIdentity(info.identity);
     const videoTrack = p?.getTrackPublication(Track.Source.ScreenShare)?.track;
     const audioTrack = info.local ? undefined : p?.getTrackPublication(Track.Source.ScreenShareAudio)?.track;
@@ -238,17 +214,59 @@ function StreamTile({
         audioEl.remove();
       }
     };
-  }, [client, info.identity, info.local, watching, streams, tick]);
+  }, [client, info.identity, info.local, active, streams, tick, videoRef]);
 
   useEffect(() => {
     const room = client.voice.getRoom();
     const p = room?.remoteParticipants.get(info.identity);
-    if (p && !info.local) p.setVolume(streamMuted ? 0 : streamVolume * settings.get().outputVolume, Track.Source.ScreenShareAudio);
-  }, [client, info.identity, info.local, streamVolume, streamMuted, streams]);
+    if (p && !info.local && active) p.setVolume(streamMuted ? 0 : streamVolume * settings.get().outputVolume, Track.Source.ScreenShareAudio);
+  }, [client, info.identity, info.local, streamVolume, streamMuted, streams, active]);
+}
+
+function StreamTile({
+  info,
+  name,
+  watching,
+  viewerIds,
+  viewerNames,
+  fullscreen,
+  popped,
+  onWatch,
+  onStop,
+  onToggleFullscreen,
+  size,
+}: {
+  info: StreamInfo;
+  name: string;
+  watching: boolean;
+  viewerIds: number[];
+  viewerNames: string;
+  fullscreen: boolean;
+  popped: boolean;
+  onWatch: () => void;
+  onStop: () => void;
+  onToggleFullscreen: () => void;
+  size: { width: number; height: number };
+}) {
+  const client = useClient();
+  const s = useSettings();
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [showStats, setShowStats] = useState(s.showStreamStats);
+  const [streamVolume, setStreamVolume] = useState(1);
+  const [streamMuted, setStreamMuted] = useState(false);
+
+  useStreamMedia(info, watching && !popped, videoRef, streamVolume, streamMuted);
 
   return (
     <div className={`stream-tile ${fullscreen ? 'fullscreen' : ''} ${info.local ? 'own' : ''}`} style={fullscreen ? undefined : size}>
-      {watching ? (
+      {watching && popped ? (
+        <div className="stream-placeholder">
+          <Icon name="popout" size={28} />
+          <p>{t('Gledaš u zasebnom prozoru')}</p>
+          <button onClick={() => client.voice.popIn(info.identity)}>
+            <Icon name="popin" size={18} /> {t('Vrati u aplikaciju')}</button>
+        </div>
+      ) : watching ? (
         <video ref={videoRef} autoPlay playsInline muted onDoubleClick={onToggleFullscreen} />
       ) : (
         <div className="stream-placeholder">
@@ -272,7 +290,7 @@ function StreamTile({
           <Icon name="eye" size={14} /> {viewerIds.length}
         </span>
         <span className="spacer" />
-        {watching && !info.local && (
+        {watching && !popped && !info.local && (
           <button
             className={`icon-btn small ${streamMuted ? 'off' : ''}`}
             title={streamMuted ? t('Uključi zvuk streama') : t('Isključi zvuk streama')}
@@ -281,7 +299,7 @@ function StreamTile({
             <Icon name={streamMuted ? 'volumeOff' : 'volume'} size={16} />
           </button>
         )}
-        {watching && !info.local && !streamMuted && (
+        {watching && !popped && !info.local && !streamMuted && (
           <input
             type="range"
             className="stream-volume"
@@ -293,18 +311,23 @@ function StreamTile({
             title={t('Zvuk streama: {v}%', { v: Math.round(streamVolume * 100) })}
           />
         )}
-        {watching && (
+        {watching && !popped && (
+          <button className="icon-btn small" title={t('Otvori u zasebnom prozoru')} onClick={() => { if (fullscreen) onToggleFullscreen(); client.voice.popOut(info.identity); }}>
+            <Icon name="popout" size={16} />
+          </button>
+        )}
+        {watching && !popped && (
           <button className="icon-btn small" title={t('Statistika')} onClick={() => setShowStats((x) => !x)}>
             <Icon name="signal" size={16} />
           </button>
         )}
-        {watching && (
+        {watching && !popped && (
           <button className="icon-btn small" title={fullscreen ? t('Izađi iz punog ekrana (Esc)') : t('Preko cijelog ekrana (dupli klik)')} onClick={onToggleFullscreen}>
             <Icon name={fullscreen ? 'minimize' : 'maximize'} size={16} />
           </button>
         )}
       </div>
-      {watching && showStats && <StreamStats info={info} />}
+      {watching && !popped && showStats && <StreamStats info={info} />}
     </div>
   );
 }
@@ -321,7 +344,7 @@ interface StatsView {
   encodeMs?: number;
 }
 
-function StreamStats({ info }: { info: StreamInfo }) {
+export function StreamStats({ info }: { info: StreamInfo }) {
   const client = useClient();
   const audioMode = useVoice((v) => v.streamAudioMode);
   const audioError = useVoice((v) => v.streamAudioError);

@@ -206,6 +206,12 @@ const EN: Record<string, string> = {
   'nepoznat razlog': 'unknown reason',
   'Zvuk: isključen': 'Audio: off',
   'Kopiraj dijagnostiku': 'Copy diagnostics',
+  'Otvori u zasebnom prozoru': 'Pop out',
+  'Gledaš u zasebnom prozoru': 'Watching in a separate window',
+  'Vrati u aplikaciju': 'Back to the app',
+  'Drži iznad drugih prozora': 'Keep on top of other windows',
+  'Ne drži iznad drugih prozora': 'Stop keeping on top',
+  'Povećaj (dupli klik)': 'Maximize (double-click)',
 
   // ---- glas: greške ----
   'Aplikacija nema pristup mikrofonu. Dozvoli mikrofon u Windows postavkama (Privatnost → Mikrofon).':

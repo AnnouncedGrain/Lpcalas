@@ -416,3 +416,9 @@ label.inline input { width: 110px; }
 .lang-switch { display: flex; gap: 4px; align-self: flex-end; margin-top: -8px; }
 .lang-switch button { padding: 3px 10px; font-size: 12px; background: transparent; border: 1px solid var(--line); border-radius: 999px; color: var(--text-3); cursor: pointer; }
 .login-card .lang-switch button.active { color: var(--accent); border-color: var(--accent); background: rgba(61, 220, 151, 0.1); }
+
+/* pop-out prozor streama */
+.popout-body, .popout-body .popout-root { height: 100%; margin: 0; background: black; overflow: hidden; }
+.stream-tile.popout { position: fixed; inset: 0; border-radius: 0; min-height: 0; }
+.stream-bar .icon-btn.active { color: var(--accent); }
+.stream-tile.popout .stream-volume { width: 110px; flex: 0 0 110px; }

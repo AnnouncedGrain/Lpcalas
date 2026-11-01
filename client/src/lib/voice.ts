@@ -41,6 +41,7 @@ export interface VoiceState {
   quality: 'excellent' | 'good' | 'poor' | 'lost' | 'unknown';
   micLevelDb: number;
   watching: string[]; // identity streamova koje gledam
+  popouts: string[]; // streamovi koje gledam u zasebnom prozoru
   // Kako se šalje zvuk mog streama: native = Windows bez Lpcalasa, browser = stari način (gledaoci se mogu čuti)
   streamAudioMode: 'native' | 'browser' | 'none';
   streamAudioError: string | null;
@@ -57,6 +58,7 @@ const INITIAL: VoiceState = {
   speaking: [],
   streaming: false,
   streams: [],
+  popouts: [],
   quality: 'unknown',
   micLevelDb: -100,
   watching: [],
@@ -345,13 +347,26 @@ export class VoiceManager {
     this.store.set({ error: null });
   }
 
+  // Stream u zasebnom prozoru (pop-out). Veza i pretplata ostaju iste, mijenja se samo gdje se prikazuje.
+  popOut(identity: string) {
+    if (!this.store.get().watching.includes(identity) && !this.store.get().streams.some((s) => s.identity === identity && s.local)) {
+      this.setWatching(identity, true);
+    }
+    this.store.set({ popouts: [...new Set([...this.store.get().popouts, identity])] });
+  }
+
+  popIn(identity: string) {
+    this.store.set({ popouts: this.store.get().popouts.filter((x) => x !== identity) });
+  }
+
   // Gledanje streama: tek tada se video (i zvuk streama) skida sa servera.
   setWatching(identity: string, watch: boolean) {
     const room = this.room;
     if (!room) return;
     const cur = this.store.get().watching;
     const next = watch ? [...new Set([...cur, identity])] : cur.filter((x) => x !== identity);
-    this.store.set({ watching: next });
+    const popouts = watch ? this.store.get().popouts : this.store.get().popouts.filter((x) => x !== identity);
+    this.store.set({ watching: next, popouts });
     this.recomputeViewers();
     const p = room.remoteParticipants.get(identity);
     if (p) {
