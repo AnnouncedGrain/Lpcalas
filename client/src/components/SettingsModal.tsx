@@ -4,6 +4,7 @@ import { captureKey, isTauri } from '../lib/native';
 import { settings, STREAM_PRESETS, presetById, type HotkeyBinding, type StreamCodec, type VoiceMode } from '../lib/settings';
 import type { Invite, User } from '../lib/types';
 import { Avatar } from './Avatar';
+import { checkEncoders, gpuName, type CodecSupport } from '../lib/hw';
 import { Icon } from './Icon';
 
 type Tab = 'account' | 'voice' | 'stream' | 'keys' | 'app' | 'admin';
@@ -359,7 +360,8 @@ function StreamTab() {
   const preset = presetById(s.streamPreset);
   const bitrate = s.streamBitrateOverride ?? preset.bitrate;
   const codecs: Array<[StreamCodec, string]> = [
-    ['h264', 'H.264 — najkompatibilniji, najčešće hardverski (preporučeno)'],
+    ['auto', 'Automatski — bira kodek koji tvoja grafička enkodira hardverski (preporučeno)'],
+    ['h264', 'H.264 — najkompatibilniji'],
     ['av1', 'AV1 — najbolji kvalitet po Mbps (novije grafičke: RX 7000+, RTX 4000+)'],
     ['vp9', 'VP9 — dobar kvalitet, često softverski'],
     ['vp8', 'VP8 — stari, samo za probu'],
@@ -388,6 +390,7 @@ function StreamTab() {
         />
         {s.streamBitrateOverride && <button className="small" onClick={() => settings.set({ streamBitrateOverride: null })}>Vrati automatski</button>}
       </Section>
+      <HwCheck width={preset.width} height={preset.height} fps={preset.fps} bitrate={bitrate} />
       <Section title="Kodek" hint="Statistika na streamu (ikonica signala) pokazuje da li enkoder radi hardverski — to je ključno da FPS u igri ne pada.">
         <div className="radio-group">
           {codecs.map(([id, label]) => (
@@ -461,7 +464,7 @@ function AppTab() {
         <Toggle checked={s.sounds} onChange={(v) => settings.set({ sounds: v })} label="Zvukovi (ulazak, izlazak, poruke, mute)" />
       </Section>
       <Section title="O aplikaciji">
-        <p>Lpcalas v0.1.2 · {isTauri ? 'Windows aplikacija' : 'web verzija'}</p>
+        <p>Lpcalas v0.1.3 · {isTauri ? 'Windows aplikacija' : 'web verzija'}</p>
         <p className="muted">Server: {server} ({client.api.baseUrl})</p>
       </Section>
     </>
@@ -566,5 +569,44 @@ function AdminTab() {
         </div>
       </Section>
     </>
+  );
+}
+
+function HwCheck({ width, height, fps, bitrate }: { width: number; height: number; fps: number; bitrate: number }) {
+  const [list, setList] = useState<CodecSupport[] | null>(null);
+  const gpu = gpuName();
+  useEffect(() => {
+    setList(null);
+    void checkEncoders(width, height, fps, bitrate).then(setList);
+  }, [width, height, fps, bitrate]);
+  const names: Record<string, string> = { h264: 'H.264', av1: 'AV1', vp9: 'VP9', vp8: 'VP8' };
+  const text = list
+    ? `Grafička: ${gpu}\n` + list.map((c) => `${names[c.codec]}: ${!c.supported ? 'nije podržan' : c.hardware ? 'hardverski' : 'softverski'}`).join('\n')
+    : '';
+  return (
+    <Section title="Hardversko enkodiranje" hint={`Grafička: ${gpu}. Provjera za ${height}p${fps}.`}>
+      {!list ? (
+        <p className="muted">Provjeravam...</p>
+      ) : (
+        <div className="hw-grid">
+          {list.map((c) => (
+            <div key={c.codec} className={`hw-item ${c.hardware ? 'ok' : 'no'}`}>
+              <b>{names[c.codec]}</b>
+              <span>{!c.supported ? 'nije podržan' : c.hardware ? 'hardverski ✓' : 'softverski ✗'}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {list && !list.some((c) => c.hardware) && (
+        <p className="hint" style={{ color: 'var(--warn)' }}>
+          Nijedan kodek nije hardverski — stream će opterećivati procesor. Pošalji ovo Claudeu.
+        </p>
+      )}
+      {list && (
+        <button className="small" onClick={() => void navigator.clipboard.writeText('Lpcalas enkoderi\n' + text)}>
+          Kopiraj rezultat
+        </button>
+      )}
+    </Section>
   );
 }

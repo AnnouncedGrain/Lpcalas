@@ -1,5 +1,5 @@
 export type VoiceMode = 'vad' | 'ptt' | 'open';
-export type StreamCodec = 'h264' | 'vp9' | 'av1' | 'vp8';
+export type StreamCodec = 'auto' | 'h264' | 'vp9' | 'av1' | 'vp8';
 
 export interface HotkeyBinding {
   vk: number;
@@ -56,7 +56,7 @@ const DEFAULTS: Settings = {
   userVolumes: {},
   hotkeys: { ptt: null, toggleMute: null, toggleDeafen: null },
   streamPreset: '1080p60',
-  streamCodec: 'h264',
+  streamCodec: 'auto',
   streamBitrateOverride: null,
   streamAudio: true,
   sounds: true,
@@ -78,6 +78,11 @@ class SettingsStore {
       /* oštećeno - koristi default */
     }
     this.value = { ...DEFAULTS, ...stored, hotkeys: { ...DEFAULTS.hotkeys, ...(stored.hotkeys || {}) } };
+    // v0.1.3: kodek se bira automatski (prije je zadano bilo H.264).
+    if (!(stored as any).codecMigrated) {
+      this.value.streamCodec = 'auto';
+      (this.value as any).codecMigrated = true;
+    }
   }
 
   get(): Settings {

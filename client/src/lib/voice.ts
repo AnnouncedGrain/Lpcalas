@@ -18,6 +18,7 @@ import { Store } from './store';
 import { presetById, settings, type Settings } from './settings';
 import { sounds } from './sounds';
 import { iceTargetsFor, setIceOverride } from './ice';
+import { pickCodec } from './hw';
 
 export interface StreamInfo {
   userId: number;
@@ -237,6 +238,7 @@ export class VoiceManager {
     const preset = presetById(s.streamPreset);
     const bitrate = s.streamBitrateOverride ?? preset.bitrate;
     try {
+      const videoCodec = s.streamCodec === 'auto' ? await pickCodec(preset.width, preset.height, preset.fps, bitrate) : s.streamCodec;
       await room.localParticipant.setScreenShareEnabled(
         true,
         {
@@ -248,7 +250,7 @@ export class VoiceManager {
           systemAudio: s.streamAudio ? 'include' : 'exclude',
         },
         {
-          videoCodec: s.streamCodec,
+          videoCodec,
           backupCodec: false,
           simulcast: false,
           screenShareEncoding: { maxBitrate: bitrate, maxFramerate: preset.fps, priority: 'high' },

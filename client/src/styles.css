@@ -346,3 +346,8 @@ label.inline input { width: 110px; }
 .table { display: flex; flex-direction: column; gap: 4px; }
 .table-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: var(--bg-1); border-radius: var(--radius); }
 .table-row.disabled { opacity: 0.5; }
+.hw-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.hw-item { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border-radius: var(--radius); background: var(--bg-1); border: 1px solid var(--line); font-size: 13px; }
+.hw-item.ok { border-color: var(--accent-2); }
+.hw-item.ok span { color: var(--accent); }
+.hw-item.no span { color: var(--text-2); }
