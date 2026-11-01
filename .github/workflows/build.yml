@@ -1,0 +1,52 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  server:
+    name: Server testovi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Testovi
+        working-directory: server
+        run: npm test
+      - name: Docker image se gradi
+        run: docker build -t lpcalas-server ./server
+
+  windows:
+    name: Windows aplikacija
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: client/src-tauri -> target
+      - name: npm install
+        working-directory: client
+        run: npm install --no-audit --no-fund
+      - name: Provjera tipova (informativno)
+        working-directory: client
+        run: npm run typecheck
+        continue-on-error: true
+      - name: Build installera
+        working-directory: client
+        run: npx tauri build
+      - name: Upload installera
+        uses: actions/upload-artifact@v4
+        with:
+          name: Lpcalas-Windows-installer
+          path: client/src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
+          retention-days: 30

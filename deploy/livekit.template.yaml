@@ -1,0 +1,26 @@
+# LiveKit konfiguracija. Setup skripta zamijeni __API_KEY__ i __API_SECRET__.
+port: 7880
+log_level: info
+
+rtc:
+  tcp_port: 7881
+  # Sav UDP saobraćaj ide kroz jedan port (lakše za router i firewall).
+  udp_port: 7882
+  # Javnu IP adresu otkrije sam (STUN). Ako ne radi, zakomentariši i upiši node_ip ispod.
+  use_external_ip: true
+  # node_ip: 1.2.3.4
+  # Omogućava da se i računar na kojem je server spoji sam na sebe.
+  enable_loopback_candidate: true
+
+keys:
+  __API_KEY__: __API_SECRET__
+
+webhook:
+  api_key: __API_KEY__
+  urls:
+    - http://backend:8080/api/livekit/webhook
+
+room:
+  empty_timeout: 30
+  departure_timeout: 10
+  max_participants: 25
