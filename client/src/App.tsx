@@ -9,6 +9,9 @@ import { ChatView } from './components/ChatView';
 import { VoiceView } from './components/VoiceView';
 import { MemberList } from './components/MemberList';
 import { SettingsModal } from './components/SettingsModal';
+import { PokeAlerts, PokeComposer } from './components/Poke';
+import { UpdateBanner } from './components/UpdateBanner';
+import { startAutoUpdateChecks } from './lib/updater';
 
 type Phase = { kind: 'loading' } | { kind: 'login' } | { kind: 'ready'; client: Client } | { kind: 'offline'; message: string };
 
@@ -80,15 +83,19 @@ function Shell() {
   const view = useApp((s) => s.view);
   const activeText = useApp((s) => s.activeTextChannelId);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  useEffect(() => startAutoUpdateChecks(), []);
 
   return (
     <div className="app">
       <Sidebar onOpenSettings={() => setSettingsOpen(true)} />
       <main className="main">
+        <UpdateBanner />
         {view === 'voice' ? <VoiceView /> : activeText !== null ? <ChatView channelId={activeText} /> : <div className="voice-view empty"><h2>Nema kanala</h2></div>}
       </main>
       <MemberList />
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
+      <PokeComposer />
+      <PokeAlerts />
     </div>
   );
 }

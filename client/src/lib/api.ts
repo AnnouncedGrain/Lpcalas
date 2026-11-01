@@ -101,6 +101,7 @@ export class Api {
     return this.post('/api/voice/state', state);
   }
   voiceKick(userId: number) { return this.post('/api/voice/kick', { userId }); }
+  poke(userId: number, message: string) { return this.post<{ delivered: boolean }>(`/api/users/${userId}/poke`, { message }); }
 
   createChannel(name: string, type: 'text' | 'voice') { return this.post<Channel>('/api/channels', { name, type }); }
   renameChannel(id: number, name: string) { return this.patch<Channel>(`/api/channels/${id}`, { name }); }

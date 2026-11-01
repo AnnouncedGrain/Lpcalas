@@ -166,6 +166,9 @@ function VoiceMemberRow({ member, menuOpen: menu, onMenu }: { member: VoiceMembe
               onChange={(e) => client.voice.setUserVolume(member.userId, Number(e.target.value))}
             />
           </label>
+          <button className="small" onClick={() => { onMenu(false); client.openPoke(member.userId); }}>
+            <Icon name="bell" size={14} /> Poke
+          </button>
           {me.role === 'admin' && (
             <button className="danger small" onClick={() => client.api.voiceKick(member.userId).catch((err) => alert(err.message))}>
               Izbaci iz kanala

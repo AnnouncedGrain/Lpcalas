@@ -394,6 +394,32 @@ test('LiveKit signal proxy: HTTP i WebSocket upgrade', async () => {
   assert.match(result, /PING$/);
 });
 
+test('poke stiže samo ciljanom korisniku', async () => {
+  const ac = new AbortController();
+  const res = await fetch(`${base}/api/events?token=${state.member.token}`, { signal: ac.signal });
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = '';
+  const self = await api('POST', `/api/users/${state.admin.user.id}/poke`, { token: state.admin.token, body: {} });
+  assert.equal(self.status, 400);
+  const r = await api('POST', `/api/users/${state.member.user.id}/poke`, { token: state.admin.token, body: { message: '  dođi u Lobby ' } });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.delivered, true);
+  const deadline = Date.now() + 3000;
+  while (!buf.includes('event: poke') && Date.now() < deadline) {
+    const { value } = await reader.read();
+    buf += dec.decode(value, { stream: true });
+  }
+  const block = buf.slice(buf.indexOf('event: poke'));
+  const data = JSON.parse(block.split('\ndata: ')[1].split('\n')[0]);
+  assert.equal(data.from, state.admin.user.id);
+  assert.equal(data.message, 'dođi u Lobby');
+  ac.abort();
+  for (let i = 0; i < 5; i++) await api('POST', `/api/users/${state.member.user.id}/poke`, { token: state.admin.token, body: {} });
+  const limited = await api('POST', `/api/users/${state.member.user.id}/poke`, { token: state.admin.token, body: {} });
+  assert.equal(limited.status, 429);
+});
+
 test('admin onemogućava korisnika: sesije prestaju važiti', async () => {
   const forbidden = await api('PATCH', `/api/users/${state.admin.user.id}`, { token: state.member.token, body: { disabled: true } });
   assert.equal(forbidden.status, 403);
@@ -427,3 +453,4 @@ test('admin upravlja kanalima', async () => {
   const del = await api('DELETE', `/api/channels/${c.json.id}`, { token: state.admin.token });
   assert.equal(del.status, 200);
 });
+

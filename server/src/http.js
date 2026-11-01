@@ -15,7 +15,7 @@ export const tooMany = (msg = 'Previše pokušaja, sačekaj malo.') => new HttpE
 export const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-Filename, X-Width, X-Height',
+  'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-Filename, X-Width, X-Height, X-Version',
   'Access-Control-Max-Age': '86400',
 };
 

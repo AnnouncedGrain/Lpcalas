@@ -374,3 +374,21 @@ label.inline input { width: 110px; }
 .lightbox-close { position: absolute; top: 18px; right: 18px; padding: 10px; border-radius: 50%; background: rgba(255, 255, 255, 0.12); color: white; cursor: pointer; }
 .lightbox-close:hover:not(:disabled) { background: rgba(255, 255, 255, 0.25); }
 .sound-tests { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+/* ---------- poke ---------- */
+.member { position: relative; }
+.member-menu.right { left: auto; right: 8px; top: 40px; width: 160px; }
+.poke-card { width: 420px; background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 22px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); }
+.poke-head { display: flex; gap: 12px; align-items: center; }
+.poke-title { font-weight: 700; font-size: 16px; }
+.row.end { justify-content: flex-end; }
+.poke-alerts { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 300; display: flex; flex-direction: column; gap: 8px; width: min(520px, 92vw); }
+.poke-alert { display: flex; align-items: center; gap: 12px; background: var(--bg-2); border: 1px solid var(--warn); border-radius: var(--radius-lg); padding: 12px 14px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55); animation: poke-shake 0.5s ease; }
+.poke-alert-body { flex: 1; min-width: 0; }
+.poke-message { margin-top: 3px; font-size: 15px; word-wrap: break-word; }
+@keyframes poke-shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-8px); } 40% { transform: translateX(8px); } 60% { transform: translateX(-5px); } 80% { transform: translateX(5px); } }
+
+/* ---------- ažuriranje ---------- */
+.update-banner { display: flex; align-items: center; gap: 10px; padding: 8px 16px; background: rgba(61, 220, 151, 0.12); border-bottom: 1px solid var(--accent-2); font-size: 14px; flex-shrink: 0; }
+.update-progress { flex: 1; height: 6px; background: var(--bg-0); border-radius: 6px; overflow: hidden; }
+.update-progress > div { height: 100%; background: var(--accent); transition: width 0.2s; }

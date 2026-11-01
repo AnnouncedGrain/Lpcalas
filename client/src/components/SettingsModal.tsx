@@ -6,6 +6,8 @@ import type { Invite, User } from '../lib/types';
 import { Avatar } from './Avatar';
 import { checkEncoders, gpuName, type CodecSupport } from '../lib/hw';
 import { sounds } from '../lib/sounds';
+import { checkForUpdate, currentVersion, installUpdate, updateStore } from '../lib/updater';
+import { useStore } from '../lib/store';
 import { Icon } from './Icon';
 
 type Tab = 'account' | 'voice' | 'stream' | 'keys' | 'app' | 'admin';
@@ -482,12 +484,14 @@ function AppTab() {
           <button className="small" onClick={() => sounds.unmute()}>Unmute</button>
           <button className="small" onClick={() => sounds.deafen()}>Deafen</button>
           <button className="small" onClick={() => sounds.message()}>Poruka</button>
+          <button className="small" onClick={() => sounds.poke()}>Poke</button>
           <button className="small" onClick={() => sounds.streamStart()}>Stream počeo</button>
           <button className="small" onClick={() => sounds.streamStop()}>Stream gotov</button>
         </div>
       </Section>
       <Section title="O aplikaciji">
-        <p>Lpcalas v0.1.5 · {isTauri ? 'Windows aplikacija' : 'web verzija'}</p>
+        <p>Lpcalas v{currentVersion()} · {isTauri ? 'Windows aplikacija' : 'web verzija'}</p>
+        <UpdateCheck />
         <p className="muted">Server: {server} ({client.api.baseUrl})</p>
       </Section>
     </>
@@ -631,5 +635,25 @@ function HwCheck({ width, height, fps, bitrate }: { width: number; height: numbe
         </button>
       )}
     </Section>
+  );
+}
+
+function UpdateCheck() {
+  const u = useStore(updateStore, (s) => s);
+  return (
+    <div className="row">
+      <button className="small" disabled={u.status === 'checking' || u.status === 'downloading'} onClick={() => void checkForUpdate(true)}>
+        Provjeri ažuriranja
+      </button>
+      {u.status === 'checking' && <span className="muted small">Provjeravam...</span>}
+      {u.status === 'uptodate' && <span className="hint ok">Imaš najnoviju verziju.</span>}
+      {u.status === 'available' && (
+        <button className="primary small" onClick={() => void installUpdate()}>
+          Ažuriraj na {u.version}
+        </button>
+      )}
+      {u.status === 'downloading' && <span className="muted small">Skidam... {Math.round(u.progress * 100)}%</span>}
+      {u.status === 'error' && <span className="error small">{u.error}</span>}
+    </div>
   );
 }

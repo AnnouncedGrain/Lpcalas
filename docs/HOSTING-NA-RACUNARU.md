@@ -17,7 +17,7 @@ Taj računar mora biti upaljen dok se ostali koriste aplikacijom.
 2. Uđi u folder `deploy` i dvoklikni **POKRENI-SERVER.bat**.
 3. Windows će pitati za administratorska prava (potrebna za firewall) — klikni **Yes**.
 4. Na kraju skripta ispiše:
-   - adresu za tebe i druge u istoj kućnoj mreži (npr. `192.168.0.14:8080`),
+   - adresu za tebe i druge u istoj kućnoj mreži (npr. `192.168.0.10:8080`),
    - adresu za prijatelje preko interneta (`TVOJA-JAVNA-IP:8080`),
    - **prvi pozivni kod**: ko se prvi registruje s njim, postaje admin.
 

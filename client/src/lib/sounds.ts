@@ -156,6 +156,13 @@ export const sounds = {
   streamStop: () => play([{ f: 900, to: 300, t: 0, d: 0.3, type: 'triangle', v: 0.25 }]),
   // Neko počeo gledati tvoj stream: diskretan visoki tik.
   viewer: () => play([{ f: 1760, t: 0, d: 0.05, v: 0.15 }]),
+  // Poke: tri brza, oštra "kuc-kuc-kuc" tona — namjerno upadljivo.
+  poke: () =>
+    play([
+      { f: 1046, t: 0, d: 0.09, type: 'square', v: 0.22 },
+      { f: 1046, t: 0.13, d: 0.09, type: 'square', v: 0.22 },
+      { f: 1397, t: 0.26, d: 0.22, type: 'square', v: 0.24 },
+    ]),
   // Za test u postavkama.
   test: () => play([{ f: 880, t: 0, d: 0.2, v: 0.35 }]),
 };

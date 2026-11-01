@@ -26,6 +26,10 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: write
+    env:
+      # Ključ za potpisivanje ažuriranja (GitHub → Settings → Secrets → Actions).
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -44,7 +48,15 @@ jobs:
         continue-on-error: true
       - name: Build installera
         working-directory: client
-        run: npx tauri build
+        shell: pwsh
+        run: |
+          if ($env:TAURI_SIGNING_PRIVATE_KEY) {
+            npx tauri build
+          } else {
+            Write-Host "::warning::TAURI_SIGNING_PRIVATE_KEY nije postavljen - build bez automatskog azuriranja"
+            '{"bundle":{"createUpdaterArtifacts":false}}' | Set-Content -Encoding utf8NoBOM no-updater.json
+            npx tauri build --config no-updater.json
+          }
       - name: Upload installera
         uses: actions/upload-artifact@v4
         with:
@@ -52,19 +64,35 @@ jobs:
           path: client/src-tauri/target/release/bundle/nsis/*.exe
           if-no-files-found: error
           retention-days: 30
-      # Installer se objavljuje i pod "Releases" na glavnoj stranici repoa (lakše za naći).
+      # Installer + potpis + latest.json idu u Releases; aplikacija odatle sama provjerava ažuriranja.
       - name: Objavi u Releases
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $version = (Get-Content client/src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
           $tag = "v$version"
-          $exe = (Get-ChildItem client/src-tauri/target/release/bundle/nsis/*.exe | Select-Object -First 1).FullName
+          $dir = "client/src-tauri/target/release/bundle/nsis"
+          $exe = Get-ChildItem "$dir/*.exe" | Select-Object -First 1
+          $files = @($exe.FullName)
+          $sig = "$($exe.FullName).sig"
+          if (Test-Path $sig) {
+            $url = "https://github.com/${{ github.repository }}/releases/download/$tag/$($exe.Name)"
+            $latest = [ordered]@{
+              version = $version
+              notes = "Lpcalas $version"
+              pub_date = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+              platforms = @{ "windows-x86_64" = @{ signature = (Get-Content $sig -Raw).Trim(); url = $url } }
+            }
+            $latest | ConvertTo-Json -Depth 5 | Set-Content -Encoding utf8NoBOM latest.json
+            $files += $sig
+            $files += (Resolve-Path latest.json).Path
+          }
           $notes = "Skini Lpcalas_${version}_x64-setup.exe ispod i pokreni ga. Ako Windows pokaze upozorenje: More info -> Run anyway."
           gh release view $tag *> $null
           if ($LASTEXITCODE -eq 0) {
-            gh release upload $tag $exe --clobber
+            gh release upload $tag @files --clobber
           } else {
-            gh release create $tag $exe --title "Lpcalas $version" --notes $notes --target $env:GITHUB_SHA
+            gh release create $tag @files --title "Lpcalas $version" --notes $notes --target $env:GITHUB_SHA --latest
           }

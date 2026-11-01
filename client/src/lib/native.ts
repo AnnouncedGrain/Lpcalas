@@ -96,11 +96,11 @@ export async function openExternal(url: string) {
   }
 }
 
-export async function flashWindow() {
+export async function flashWindow(critical = false) {
   if (!isTauri || document.hasFocus()) return;
   try {
     const { getCurrentWindow, UserAttentionType } = await import('@tauri-apps/api/window');
-    await getCurrentWindow().requestUserAttention(UserAttentionType.Informational);
+    await getCurrentWindow().requestUserAttention(critical ? UserAttentionType.Critical : UserAttentionType.Informational);
   } catch {
     /* nije kritično */
   }

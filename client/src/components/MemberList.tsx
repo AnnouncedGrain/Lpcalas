@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useApp, useClient } from '../lib/context';
 import { Avatar } from './Avatar';
 import { Icon } from './Icon';
@@ -8,6 +9,15 @@ export function MemberList() {
   const online = useApp((s) => s.online);
   const voice = useApp((s) => s.voice);
   const channels = useApp((s) => s.channels);
+  const meId = useApp((s) => s.me.id);
+  const [menu, setMenu] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (menu === null) return;
+    const close = () => setMenu(null);
+    window.addEventListener('click', close);
+    return () => window.removeEventListener('click', close);
+  }, [menu]);
 
   const inVoice = new Map<number, string>();
   for (const [cid, members] of Object.entries(voice)) {
@@ -20,7 +30,15 @@ export function MemberList() {
   const off = all.filter((u) => !online.includes(u.id)).sort((a, b) => a.displayName.localeCompare(b.displayName));
 
   const row = (u: (typeof all)[number], isOnline: boolean) => (
-    <div key={u.id} className={`member ${isOnline ? '' : 'offline'}`}>
+    <div
+      key={u.id}
+      className={`member ${isOnline ? '' : 'offline'}`}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        setMenu(u.id === meId || !isOnline ? null : u.id);
+      }}
+      title={u.id === meId || !isOnline ? undefined : 'Desni klik: Poke'}
+    >
       <Avatar user={u} size={32} baseUrl={client.api.baseUrl} online={isOnline} />
       <div className="member-text">
         <span className="member-name">
@@ -29,6 +47,13 @@ export function MemberList() {
         </span>
         {inVoice.get(u.id) && <span className="muted small">{inVoice.get(u.id)}</span>}
       </div>
+      {menu === u.id && (
+        <div className="member-menu right" onClick={(e) => e.stopPropagation()}>
+          <button className="small" onClick={() => { setMenu(null); client.openPoke(u.id); }}>
+            <Icon name="bell" size={14} /> Poke
+          </button>
+        </div>
+      )}
     </div>
   );
 

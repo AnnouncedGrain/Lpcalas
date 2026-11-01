@@ -28,6 +28,8 @@ export interface AppState {
   unread: Record<number, number>;
   activeTextChannelId: number | null;
   view: 'text' | 'voice';
+  pokeTarget: number | null; // kome pišem poke
+  pokes: Array<{ id: number; from: number; message: string; at: number }>; // primljeni
 }
 
 // Jedna instanca po prijavi: API, realtime događaji, glas i stanje aplikacije.
@@ -50,6 +52,8 @@ export class Client {
       unread: {},
       activeTextChannelId: textChannels[0]?.id ?? null,
       view: 'text',
+      pokeTarget: null,
+      pokes: [],
     });
     this.voice = new VoiceManager(api);
     this.connectEvents();
@@ -157,6 +161,11 @@ export class Client {
         return { channels, activeTextChannelId: active };
       });
       if (this.voice.store.get().channelId === id) void this.voice.leave();
+    });
+    on('poke', (p: { from: number; message: string; at: number }) => {
+      sounds.poke();
+      void flashWindow(true);
+      this.store.set((s) => ({ pokes: [...s.pokes, { ...p, id: Date.now() + Math.random() }].slice(-5) }));
     });
     on('typing', ({ channelId, userId }: { channelId: number; userId: number }) => {
       this.store.set((s) => ({
@@ -305,6 +314,21 @@ export class Client {
     if (now - this.lastTypingSent < 4000) return;
     this.lastTypingSent = now;
     void this.api.typing(channelId).catch(() => {});
+  }
+
+  // ---------- poke ----------
+
+  openPoke(userId: number | null) {
+    this.store.set({ pokeTarget: userId });
+  }
+
+  async sendPoke(userId: number, message: string) {
+    const r = await this.api.poke(userId, message);
+    return r.delivered;
+  }
+
+  dismissPoke(id: number) {
+    this.store.set((s) => ({ pokes: s.pokes.filter((p) => p.id !== id) }));
   }
 
   // ---------- tipke ----------

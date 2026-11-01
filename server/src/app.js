@@ -528,6 +528,22 @@ export function createApp(config, { log = console } = {}) {
     }
   }
 
+  // ---------- poke (kao na TeamSpeaku) ----------
+
+  const pokeLimiter = new RateLimiter(5, 30 * 1000);
+
+  r.post('/api/users/:id/poke', async (ctx) => {
+    const target = userStmt.get(id(ctx.params.id));
+    if (!target || target.disabled) throw notFound('Korisnik ne postoji.');
+    if (target.id === ctx.user.id) throw bad('Ne možeš pokeati sam sebe.');
+    if (!pokeLimiter.allow(`poke:${ctx.user.id}`)) throw tooMany('Previše pokeova, sačekaj malo.');
+    const body = await readJson(ctx.req);
+    const message = typeof body.message === 'string' ? body.message.trim().slice(0, 200) : '';
+    const online = hub.isOnline(target.id);
+    hub.sendToUser(target.id, 'poke', { from: ctx.user.id, message, at: now() });
+    return { delivered: online };
+  });
+
   // ---------- admin ----------
 
   r.get('/api/invites', (ctx) => {

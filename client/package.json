@@ -1,7 +1,7 @@
 {
   "name": "lpcalas",
   "private": true,
-  "version": "0.1.5",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -14,7 +14,9 @@
     "@tauri-apps/plugin-opener": "^2.2.0",
     "livekit-client": "^2.15.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "@tauri-apps/plugin-updater": "^2.9.0",
+    "@tauri-apps/plugin-process": "^2.3.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.5.0",
