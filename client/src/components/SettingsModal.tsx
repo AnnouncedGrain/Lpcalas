@@ -472,7 +472,7 @@ function AppTab() {
           checked={s.voiceAnnouncements}
           onChange={(v) => settings.set({ voiceAnnouncements: v })}
           label="Glasovna najava"
-          hint='Kaže "Mikrofon isključen / uključen" i "Zvuk isključen / uključen".'
+          hint='Na engleskom: "Microphone muted / activated", "Sound muted / activated" (umjesto tona).'
         />
         <div className="sound-tests">
           <span className="muted small">Poslušaj:</span>
@@ -487,7 +487,7 @@ function AppTab() {
         </div>
       </Section>
       <Section title="O aplikaciji">
-        <p>Lpcalas v0.1.4 · {isTauri ? 'Windows aplikacija' : 'web verzija'}</p>
+        <p>Lpcalas v0.1.5 · {isTauri ? 'Windows aplikacija' : 'web verzija'}</p>
         <p className="muted">Server: {server} ({client.api.baseUrl})</p>
       </Section>
     </>

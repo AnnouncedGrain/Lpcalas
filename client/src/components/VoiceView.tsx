@@ -293,11 +293,6 @@ function StreamTile({
             <Icon name={fullscreen ? 'minimize' : 'maximize'} size={16} />
           </button>
         )}
-        {watching && !info.local && (
-          <button className="icon-btn small" title="Prestani gledati" onClick={onStop}>
-            <Icon name="eyeOff" size={16} />
-          </button>
-        )}
       </div>
       {watching && showStats && <StreamStats info={info} />}
     </div>

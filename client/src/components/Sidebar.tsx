@@ -1,4 +1,4 @@
-import { useState, type MouseEvent } from 'react';
+import { useEffect, useState, type MouseEvent } from 'react';
 import { useApp, useClient, useSettings, useVoice } from '../lib/context';
 import { settings } from '../lib/settings';
 import type { Channel, VoiceMember } from '../lib/types';
@@ -16,6 +16,20 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings: () => void }) {
   const voice = useApp((s) => s.voice);
   const connection = useApp((s) => s.connection);
   const myVoiceChannel = useVoice((v) => v.channelId);
+  const [openMenu, setOpenMenu] = useState<number | null>(null);
+
+  // Klik bilo gdje drugo ili Escape zatvara otvoreni meni.
+  useEffect(() => {
+    if (openMenu === null) return;
+    const close = () => setOpenMenu(null);
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close();
+    window.addEventListener('click', close);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('click', close);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [openMenu]);
 
   const text = channels.filter((c) => c.type === 'text');
   const voiceChannels = channels.filter((c) => c.type === 'voice');
@@ -81,7 +95,12 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings: () => void }) {
             </button>
             <div className="voice-members">
               {(voice[c.id] || []).map((m) => (
-                <VoiceMemberRow key={m.userId} member={m} />
+                <VoiceMemberRow
+                  key={m.userId}
+                  member={m}
+                  menuOpen={openMenu === m.userId}
+                  onMenu={(open) => setOpenMenu(open ? m.userId : null)}
+                />
               ))}
             </div>
           </div>
@@ -107,13 +126,12 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings: () => void }) {
   }
 }
 
-function VoiceMemberRow({ member }: { member: VoiceMember }) {
+function VoiceMemberRow({ member, menuOpen: menu, onMenu }: { member: VoiceMember; menuOpen: boolean; onMenu: (open: boolean) => void }) {
   const client = useClient();
   const user = useApp((s) => s.users[member.userId]);
   const me = useApp((s) => s.me);
   const speaking = useVoice((v) => v.speaking.includes(member.userId) && v.channelId !== null);
   const s = useSettings();
-  const [menu, setMenu] = useState(false);
   const isMe = me.id === member.userId;
   const volume = s.userVolumes[String(member.userId)] ?? 1;
 
@@ -123,7 +141,7 @@ function VoiceMemberRow({ member }: { member: VoiceMember }) {
         className="voice-member"
         onContextMenu={(e) => {
           e.preventDefault();
-          if (!isMe) setMenu((x) => !x);
+          onMenu(isMe ? false : !menu);
         }}
         title={isMe ? undefined : 'Desni klik: jačina zvuka'}
       >
@@ -136,7 +154,7 @@ function VoiceMemberRow({ member }: { member: VoiceMember }) {
         </span>
       </div>
       {menu && (
-        <div className="member-menu" onMouseLeave={() => setMenu(false)}>
+        <div className="member-menu" onMouseLeave={() => onMenu(false)} onClick={(e) => e.stopPropagation()}>
           <label>
             Jačina: {Math.round(volume * 100)}%
             <input

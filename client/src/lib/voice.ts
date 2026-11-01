@@ -292,6 +292,7 @@ export class VoiceManager {
     const cur = this.store.get().watching;
     const next = watch ? [...new Set([...cur, identity])] : cur.filter((x) => x !== identity);
     this.store.set({ watching: next });
+    this.recomputeViewers();
     const p = room.remoteParticipants.get(identity);
     if (p) {
       p.getTrackPublication(Track.Source.ScreenShare)?.setSubscribed(watch);
@@ -320,6 +321,10 @@ export class VoiceManager {
       for (const streamer of list) (viewers[streamer] ||= []).push(Number(p.identity));
     }
     const me = room.localParticipant.identity;
+    for (const streamer of this.store.get().watching) {
+      const list = (viewers[streamer] ||= []);
+      if (!list.includes(Number(me))) list.push(Number(me));
+    }
     const before = this.store.get().viewers[me]?.length || 0;
     const after = viewers[me]?.length || 0;
     if (this.store.get().streaming && after > before) sounds.viewer();
@@ -451,6 +456,7 @@ export class VoiceManager {
         sounds.leave();
         if (this.store.get().watching.includes(p.identity)) {
           this.store.set({ watching: this.store.get().watching.filter((x) => x !== p.identity) });
+          void room.localParticipant.setAttributes({ watching: this.store.get().watching.join(',') }).catch(() => {});
         }
         this.refreshStreams();
         this.recomputeViewers();

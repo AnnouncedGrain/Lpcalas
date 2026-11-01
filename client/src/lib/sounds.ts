@@ -54,28 +54,36 @@ function play(notes: Note[]) {
   }
 }
 
-// Kratka glasovna najava ("Mikrofon isključen"), ako je uključena u postavkama.
-function say(text: string) {
-  if (!settings.get().voiceAnnouncements || !settings.get().sounds) return;
+// Kratka glasovna najava na engleskom (kao na TeamSpeaku), ako je uključena u postavkama.
+// Vraća true ako je najava izgovorena (tada se ton preskače).
+function say(text: string): boolean {
+  if (!settings.get().voiceAnnouncements || !settings.get().sounds) return false;
   try {
     const synth = window.speechSynthesis;
-    if (!synth) return;
+    if (!synth) return false;
     synth.cancel();
     const u = new SpeechSynthesisUtterance(text);
     const voices = synth.getVoices();
-    const local = voices.find((v) => /^(bs|hr|sr)/i.test(v.lang));
-    if (local) {
-      u.voice = local;
-      u.lang = local.lang;
-    } else {
-      u.lang = 'hr-HR';
-    }
-    u.rate = 1.15;
+    const en =
+      voices.find((v) => /zira/i.test(v.name)) ||
+      voices.find((v) => v.lang === 'en-US') ||
+      voices.find((v) => /^en/i.test(v.lang));
+    if (en) u.voice = en;
+    u.lang = en?.lang || 'en-US';
+    u.rate = 1.05;
     u.volume = Math.min(1, settings.get().soundVolume);
     synth.speak(u);
+    return true;
   } catch {
-    /* nema govora */
+    return false;
   }
+}
+
+// Glasovi se u WebView2 učitavaju asinhrono — "probudi" listu odmah.
+try {
+  window.speechSynthesis?.getVoices();
+} catch {
+  /* ignore */
 }
 
 export const sounds = {
@@ -102,36 +110,36 @@ export const sounds = {
   selfLeave: () => play([{ f: 700, to: 260, t: 0, d: 0.35, type: 'triangle', v: 0.35 }]),
   // Mute: dubok, "tup" kvadratni ton naniže + glas.
   mute: () => {
+    if (say('Microphone muted')) return;
     play([
       { f: 330, to: 180, t: 0, d: 0.16, type: 'square', v: 0.18 },
       { f: 220, t: 0.13, d: 0.12, type: 'square', v: 0.14 },
     ]);
-    say('Mikrofon isključen');
   },
   // Unmute: kratko "klik-klik" naviše + glas.
   unmute: () => {
+    if (say('Microphone activated')) return;
     play([
       { f: 440, t: 0, d: 0.07, type: 'square', v: 0.16 },
       { f: 880, t: 0.08, d: 0.1, type: 'square', v: 0.16 },
     ]);
-    say('Mikrofon uključen');
   },
   // Deafen: tri silazna tona, prigušeno.
   deafen: () => {
+    if (say('Sound muted')) return;
     play([
       { f: 600, t: 0, d: 0.1, type: 'sawtooth', v: 0.1 },
       { f: 450, t: 0.09, d: 0.1, type: 'sawtooth', v: 0.1 },
       { f: 300, t: 0.18, d: 0.18, type: 'sawtooth', v: 0.1 },
     ]);
-    say('Zvuk isključen');
   },
   undeafen: () => {
+    if (say('Sound activated')) return;
     play([
       { f: 300, t: 0, d: 0.1, type: 'sawtooth', v: 0.1 },
       { f: 450, t: 0.09, d: 0.1, type: 'sawtooth', v: 0.1 },
       { f: 600, t: 0.18, d: 0.18, type: 'sawtooth', v: 0.1 },
     ]);
-    say('Zvuk uključen');
   },
   // Nova poruka: kratki dvostruki "pop" visoko.
   message: () =>
