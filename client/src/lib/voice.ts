@@ -246,7 +246,18 @@ export class VoiceManager {
       await room.localParticipant.setScreenShareEnabled(
         true,
         {
-          audio: s.streamAudio,
+          // Zvuk sistema BEZ zvuka ove aplikacije (restrictOwnAudio): gledaoci ne čuju sebe
+          // (glasove iz voice kanala) u streamu. Bez obrade, da zvuk igre ostane čist.
+          audio: s.streamAudio
+            ? {
+                restrictOwnAudio: true,
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: false,
+                channelCount: 2,
+              }
+            : false,
+          suppressLocalAudioPlayback: false,
           resolution: { width: preset.width, height: preset.height, frameRate: preset.fps },
           contentHint: 'motion',
           selfBrowserSurface: 'exclude',
