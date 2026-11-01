@@ -50,4 +50,9 @@ export const CHANGELOG: Array<{ version: string; notes: string }> = [
 - Dugme za mute zvuka na streamu koji gledaš
 - Gledaoci više ne čuju sami sebe u streamu: zvuk računara se snima bez zvuka Lpcalasa`,
   },
+  {
+    version: '0.2.3',
+    notes: `- Statistika streama pokazuje kako se šalje zvuk (Windows bez Lpcalasa ili stari način)
+- Ako zvuk ne može ići bez Lpcalasa, streamer odmah dobije poruku s razlogom`,
+  },
 ];

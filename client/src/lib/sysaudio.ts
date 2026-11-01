@@ -39,8 +39,14 @@ export interface SystemAudio {
   stop: () => Promise<void>;
 }
 
+export let lastSystemAudioError: string | null = null;
+
 export async function startSystemAudio(): Promise<SystemAudio | null> {
-  if (!isTauri) return null;
+  lastSystemAudioError = null;
+  if (!isTauri) {
+    lastSystemAudioError = 'radi samo u Windows aplikaciji';
+    return null;
+  }
   const { invoke, Channel } = await import('@tauri-apps/api/core');
   const ctx = new AudioContext({ sampleRate: 48000, latencyHint: 'interactive' });
   try {
@@ -70,6 +76,7 @@ export async function startSystemAudio(): Promise<SystemAudio | null> {
     };
   } catch (err) {
     await ctx.close().catch(() => {});
+    lastSystemAudioError = String((err as any)?.message || err);
     console.warn('[lpcalas] zvuk sistema bez aplikacije nije dostupan:', err);
     return null;
   }

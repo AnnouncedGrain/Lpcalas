@@ -19,7 +19,7 @@ import { presetById, settings, type Settings } from './settings';
 import { sounds } from './sounds';
 import { iceTargetsFor, setIceOverride } from './ice';
 import { pickCodec } from './hw';
-import { startSystemAudio, type SystemAudio } from './sysaudio';
+import { lastSystemAudioError, startSystemAudio, type SystemAudio } from './sysaudio';
 
 export interface StreamInfo {
   userId: number;
@@ -40,6 +40,9 @@ export interface VoiceState {
   quality: 'excellent' | 'good' | 'poor' | 'lost' | 'unknown';
   micLevelDb: number;
   watching: string[]; // identity streamova koje gledam
+  // Kako se šalje zvuk mog streama: native = Windows bez Lpcalasa, browser = stari način (gledaoci se mogu čuti)
+  streamAudioMode: 'native' | 'browser' | 'none';
+  streamAudioError: string | null;
   viewers: Record<string, number[]>; // identity streamera -> userId gledalaca
 }
 
@@ -57,6 +60,8 @@ const INITIAL: VoiceState = {
   micLevelDb: -100,
   watching: [],
   viewers: {},
+  streamAudioMode: 'none',
+  streamAudioError: null,
 };
 
 // AudioWorklet radi na audio niti, pa ga Windows/Chromium ne usporava kad je igra u prvom planu.
@@ -295,7 +300,17 @@ export class VoiceManager {
           await native.stop();
         }
       }
-      this.store.set({ streaming: room.localParticipant.isScreenShareEnabled });
+      const mode = !s.streamAudio ? 'none' : native ? 'native' : 'browser';
+      this.store.set({
+        streaming: room.localParticipant.isScreenShareEnabled,
+        streamAudioMode: mode,
+        streamAudioError: mode === 'browser' ? lastSystemAudioError : null,
+      });
+      if (mode === 'browser' && room.localParticipant.isScreenShareEnabled) {
+        this.store.set({
+          error: `Zvuk streama ide starim putem — gledaoci bi mogli čuti sebe. Razlog: ${lastSystemAudioError || 'nepoznat'}. Pošalji ovo Claudeu.`,
+        });
+      }
       if (room.localParticipant.isScreenShareEnabled) sounds.streamStart();
       this.refreshStreams();
       void this.reportState();

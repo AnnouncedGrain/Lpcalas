@@ -323,6 +323,8 @@ interface StatsView {
 
 function StreamStats({ info }: { info: StreamInfo }) {
   const client = useClient();
+  const audioMode = useVoice((v) => v.streamAudioMode);
+  const audioError = useVoice((v) => v.streamAudioError);
   const [stats, setStats] = useState<StatsView | null>(null);
 
   useEffect(() => {
@@ -376,6 +378,13 @@ function StreamStats({ info }: { info: StreamInfo }) {
     stats.encodeMs !== undefined ? `Enkodiranje: ${stats.encodeMs} ms/frame` : null,
     stats.limitation && stats.limitation !== 'none' ? `Ograničenje: ${stats.limitation === 'cpu' ? 'procesor' : stats.limitation === 'bandwidth' ? 'internet' : stats.limitation}` : null,
     stats.dropped ? `Izgubljeno frameova: ${stats.dropped}` : null,
+    info.local
+      ? audioMode === 'native'
+        ? 'Zvuk: Windows, bez Lpcalasa ✓'
+        : audioMode === 'browser'
+          ? `Zvuk: stari način ✗ (${audioError || 'nepoznat razlog'})`
+          : 'Zvuk: isključen'
+      : null,
   ].filter(Boolean);
   return (
     <div className="stream-stats">
