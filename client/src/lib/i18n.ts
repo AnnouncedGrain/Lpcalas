@@ -206,6 +206,7 @@ const EN: Record<string, string> = {
   'nepoznat razlog': 'unknown reason',
   'Zvuk: isključen': 'Audio: off',
   'Kopiraj dijagnostiku': 'Copy diagnostics',
+  'Mikrofon: {v}': 'Microphone: {v}',
   'Otvori u zasebnom prozoru': 'Pop out',
   'Gledaš u zasebnom prozoru': 'Watching in a separate window',
   'Vrati u aplikaciju': 'Back to the app',

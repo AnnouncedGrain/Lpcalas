@@ -62,4 +62,9 @@ export const CHANGELOG: Array<{ version: string; notes: string }> = [
     notes: `- Pop-out streama: dugme na streamu otvara ga u zasebnom prozoru koji možeš pomjerati, povećavati i držati iznad drugih prozora
 - Zatvaranje tog prozora vraća stream u aplikaciju`,
   },
+  {
+    version: '0.2.5',
+    notes: `- Uklonjena Windows traka "dijeli ekran / sakrij" na dnu ekrana dok streamaš (stream se gasi iz aplikacije)
+- Statistika streama kod streamera pokazuje i koji mikrofon se koristi (dijagnostika eha)`,
+  },
 ];

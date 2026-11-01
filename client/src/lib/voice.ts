@@ -21,6 +21,7 @@ import { iceTargetsFor, setIceOverride } from './ice';
 import { pickCodec } from './hw';
 import { lastSystemAudioError, startSystemAudio, type SystemAudio } from './sysaudio';
 import { t } from './i18n';
+import { isTauri } from './native';
 
 export interface StreamInfo {
   userId: number;
@@ -288,6 +289,10 @@ export class VoiceManager {
           degradationPreference: 'maintain-framerate',
         },
       );
+      // Sakrij WebView2 traku "dijeli ekran / sakrij" na dnu ekrana (smeta u igri).
+      if (isTauri && room.localParticipant.isScreenShareEnabled) {
+        void import('@tauri-apps/api/core').then(({ invoke }) => invoke('hide_share_bar')).catch(() => {});
+      }
       if (native) {
         if (room.localParticipant.isScreenShareEnabled) {
           this.sysAudio = native;

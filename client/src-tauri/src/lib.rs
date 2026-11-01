@@ -1,4 +1,5 @@
 mod hotkeys;
+mod sharebar;
 mod sysaudio;
 
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -116,6 +117,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             set_hotkeys,
             popout_control,
+            sharebar::hide_share_bar,
             hotkeys::capture_key,
             sysaudio::start_system_audio,
             sysaudio::stop_system_audio

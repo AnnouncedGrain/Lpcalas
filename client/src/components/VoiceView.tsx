@@ -342,6 +342,7 @@ interface StatsView {
   limitation?: string;
   dropped?: number;
   encodeMs?: number;
+  mic?: string;
 }
 
 export function StreamStats({ info }: { info: StreamInfo }) {
@@ -376,6 +377,15 @@ export function StreamStats({ info }: { info: StreamInfo }) {
       prevBytes = bytes;
       prevTs = ts;
       const codec = codecs.get(main.codecId)?.mimeType?.replace('video/', '') || '?';
+      // Kod streamera: koji mikrofon je stvarno u upotrebi i da li radi uklanjanje eha (dijagnostika eha).
+      let mic: string | undefined;
+      if (info.local) {
+        const mt = room?.localParticipant.getTrackPublication(Track.Source.Microphone)?.track?.mediaStreamTrack;
+        if (mt) {
+          const st = mt.getSettings() as MediaTrackSettings;
+          mic = `${mt.label || '?'} · AEC ${st.echoCancellation ? '✓' : '✗'} · NS ${st.noiseSuppression ? '✓' : '✗'}`;
+        }
+      }
       setStats({
         resolution: main.frameWidth ? `${main.frameWidth}×${main.frameHeight}` : '?',
         fps: Math.round(main.framesPerSecond || 0),
@@ -385,6 +395,7 @@ export function StreamStats({ info }: { info: StreamInfo }) {
         hardware: main.powerEfficientEncoder ?? main.powerEfficientDecoder ?? null,
         limitation: main.qualityLimitationReason,
         dropped: main.framesDropped,
+        mic,
         encodeMs: main.framesEncoded ? Math.round((main.totalEncodeTime / main.framesEncoded) * 1000 * 10) / 10 : undefined,
       });
     };
@@ -408,6 +419,7 @@ export function StreamStats({ info }: { info: StreamInfo }) {
           ? t('Zvuk: stari način ✗ ({err})', { err: audioError || t('nepoznat razlog') })
           : t('Zvuk: isključen')
       : null,
+    stats.mic ? t('Mikrofon: {v}', { v: stats.mic }) : null,
   ].filter(Boolean);
   return (
     <div className="stream-stats">
