@@ -17,6 +17,7 @@ import type { Api } from './api';
 import { Store } from './store';
 import { presetById, settings, type Settings } from './settings';
 import { sounds } from './sounds';
+import { iceOverrideFor, setIceOverride } from './ice';
 
 export interface StreamInfo {
   userId: number;
@@ -83,6 +84,7 @@ export class VoiceManager {
   private pttReleaseTimer: ReturnType<typeof setTimeout> | null = null;
   private lastSettings: Settings = settings.get();
   private joinSeq = 0;
+  private connectedAt = 0;
 
   constructor(private api: Api) {
     settings.subscribe((s) => this.onSettings(s));
@@ -102,6 +104,7 @@ export class VoiceManager {
     const s = settings.get();
     try {
       const { token, url } = await this.api.voiceToken(channelId);
+      setIceOverride(iceOverrideFor(this.api.baseUrl));
       if (seq !== this.joinSeq) return;
       const room = new Room({
         adaptiveStream: true,
@@ -131,6 +134,7 @@ export class VoiceManager {
       this.applyGate();
       this.applyVolumes();
       this.store.set({ status: 'connected' });
+      this.connectedAt = Date.now();
       this.refreshStreams();
       sounds.selfJoin();
       void this.reportState(true);
@@ -437,7 +441,9 @@ export class VoiceManager {
               ? 'Admin te izbacio iz glasovnog kanala.'
               : reason === DisconnectReason.CLIENT_INITIATED
                 ? null
-                : 'Veza s glasovnim serverom je prekinuta.';
+                : Date.now() - this.connectedAt < 45_000
+                  ? 'Glasovni server je dostupan, ali glas ne prolazi. Provjeri da LiveKit radi i da su TCP 7881 i UDP 7882 otvoreni (firewall/ruter).'
+                  : 'Veza s glasovnim serverom je prekinuta.';
         void this.leave(false).then(() => {
           if (msg) this.store.set({ error: msg });
         });
